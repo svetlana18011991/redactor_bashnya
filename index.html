@@ -2,86 +2,164 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Редактор</title>
+    <title>Редактор Башни</title>
     <style>
-        /* ИСПРАВЛЕНИЕ 1: Добавлен фон 1.png из корня */
+        /* 1. ФОН ИЗ КОРНЯ (1.png) */
         body {
             margin: 0;
             padding: 0;
             background: url('1.png') no-repeat center center fixed;
             background-size: cover;
+            font-family: Arial, sans-serif;
             height: 100vh;
-            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Твой оригинальный контейнер (оставлен без изменений) */
-        .container {
+        /* КОНТЕЙНЕР РЕДАКТОРА */
+        .editor-container {
             display: flex;
             flex-direction: column;
             height: 100vh;
         }
 
-        /* Область сборки башни */
-        .game-area {
+        /* 2. РАБОЧАЯ ОБЛАСТЬ (Лист, куда встает башня) */
+        .workspace {
             flex: 1;
             display: flex;
-            flex-direction: column-reverse; /* Собирает снизу вверх */
+            flex-direction: column-reverse; /* Блоки ложатся снизу вверх */
             align-items: center;
             justify-content: flex-start;
+            padding: 20px;
+            overflow-y: auto;
         }
 
-        /* ИСПРАВЛЕНИЕ 2: Ограничение размера блоков, чтобы башня влезала на лист */
-        .block img {
-            display: block;
+        /* ТЕКСТ ВОПРОСА (Редактируемый) */
+        #question-text {
+            color: white;
+            font-size: 24px;
+            text-shadow: 2px 2px 4px #000;
+            margin-bottom: 20px;
+            text-align: center;
+            min-height: 30px;
+        }
+
+        /* 3. МАСШТАБ БЛОКОВ (Чтобы башня вмещалась) */
+        .tower-block {
             width: auto;
-            max-height: 8vh; /* 9 блоков по 8% высоты = башня всегда влезет в экран */
+            max-width: 300px; 
+            max-height: 8.5vh; /* Гарантирует, что 9-11 блоков влезут на один экран */
             object-fit: contain;
+            margin-bottom: -2px; /* Плотная стыковка */
         }
 
-        /* Твоя панель выбора блоков (оставлена как была) */
+        /* ПАНЕЛЬ ИНСТРУМЕНТОВ */
+        .toolbar {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .inputs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        input {
+            padding: 8px;
+            width: 300px;
+        }
+
         .palette {
-            background: rgba(255, 255, 255, 0.8);
-            padding: 10px;
             display: flex;
             gap: 10px;
             overflow-x: auto;
+            padding: 10px;
+            border-top: 1px solid #444;
         }
 
         .palette img {
             height: 60px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .palette img:hover {
+            border-color: yellow;
+        }
+
+        button {
+            padding: 8px 15px;
             cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="game-area" id="drop-zone">
-            </div>
-
-        <div class="palette" id="inventory">
-            </div>
+<div class="editor-container">
+    <div class="workspace" id="workspace">
+        <div id="question-text"></div>
     </div>
 
-    <script>
-        const inventory = document.getElementById('inventory');
-        const dropZone = document.getElementById('drop-zone');
+    <div class="toolbar">
+        <div class="inputs">
+            <input type="text" id="input-q" placeholder="Введите ваш вопрос для этого блока...">
+            <button onclick="updateQ()">Применить текст</button>
+        </div>
 
-        // Подгружаем блоки 3-11 из корня по порядку
-        for (let i = 3; i <= 11; i++) {
-            const img = document.createElement('img');
-            img.src = `${i}.png`; // Путь из корня
-            img.onclick = () => {
-                const newBlock = document.createElement('div');
-                newBlock.className = 'block';
-                const blockImg = document.createElement('img');
-                blockImg.src = `${i}.png`;
-                newBlock.appendChild(blockImg);
-                dropZone.appendChild(newBlock);
-            };
-            inventory.appendChild(img);
+        <div class="palette" id="palette">
+            </div>
+
+        <div class="inputs">
+            <button onclick="undo()">Удалить последний блок</button>
+            <button onclick="clearAll()">Очистить всё</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const workspace = document.getElementById('workspace');
+    const palette = document.getElementById('palette');
+    const inputQ = document.getElementById('input-q');
+    const textDisp = document.getElementById('question-text');
+
+    // Подгрузка блоков из корня (3.png - 11.png)
+    for (let i = 3; i <= 11; i++) {
+        const img = document.createElement('img');
+        img.src = `${i}.png`; // Путь из корня репозитория
+        img.onclick = () => addBlock(img.src);
+        palette.appendChild(img);
+    }
+
+    function addBlock(src) {
+        const newImg = document.createElement('img');
+        newImg.src = src;
+        newImg.className = 'tower-block';
+        // Вставляем блок в рабочую область
+        workspace.appendChild(newImg);
+    }
+
+    function updateQ() {
+        textDisp.innerText = inputQ.value;
+    }
+
+    function undo() {
+        const blocks = workspace.getElementsByClassName('tower-block');
+        if (blocks.length > 0) {
+            workspace.removeChild(blocks[blocks.length - 1]);
         }
-    </script>
+    }
+
+    function clearAll() {
+        const blocks = document.querySelectorAll('.tower-block');
+        blocks.forEach(b => b.remove());
+        textDisp.innerText = '';
+        inputQ.value = '';
+    }
+</script>
+
 </body>
 </html>
