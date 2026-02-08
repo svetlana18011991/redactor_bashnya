@@ -13,62 +13,44 @@
             flex-direction: column;
             align-items: center;
         }
-        .gallery-container {
+        .gallery {
             display: flex;
             flex-direction: column;
-            gap: 15px; /* Расстояние между картинками */
+            gap: 10px;
             width: 100%;
             max-width: 800px;
         }
-        .block-item {
-            width: 100%;
-            background: #fff;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        .block-item img {
+        .gallery img {
             width: 100%;
             height: auto;
             display: block;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
     </style>
 </head>
 <body>
 
-    <div id="blocks-wrapper" class="gallery-container">
+    <div id="blocks-container" class="gallery">
         </div>
 
     <script>
-        const wrapper = document.getElementById('blocks-wrapper');
+        const container = document.getElementById('blocks-container');
         
-        // Настройки: от какого до какого числа выводить картинки
-        const start = 3;
-        const end = 11;
+        // Массив номеров, которые есть в вашем репозитории (от 3 до 11)
+        const images = [3, 4, 5, 6, 7, 8, 9, 10, 11];
 
-        for (let i = start; i <= end; i++) {
-            // Создаем элемент блока
-            const block = document.createElement('div');
-            block.className = 'block-item';
-
-            // Создаем саму картинку
+        images.forEach(num => {
             const img = document.createElement('img');
+            // Так как картинки лежат в корне, путь просто имя_файла.png
+            img.src = `${num}.png`; 
+            img.alt = `Блок ${num}`;
             
-            // ПУТЬ: берем из папки 3-11 в корне репозитория
-            // Если расширение другое (например .jpg), замените .png ниже
-            img.src = `./3-11/${i}.png`; 
-            img.alt = `Картинка ${i}`;
-
-            // Если картинка не загрузилась (например, не PNG, а JPG), 
-            // пробуем заменить расширение или просто скрываем битый блок
-            img.onerror = function() {
-                this.src = `./3-11/${i}.jpg`; // Пробуем JPG, если PNG не подошел
-                this.onerror = () => block.style.display = 'none'; 
-            };
-
-            block.appendChild(img);
-            wrapper.appendChild(block);
-        }
+            // Если вдруг файл не загрузится, выведем ошибку в консоль для проверки
+            img.onerror = () => console.error(`Ошибка загрузки: ${num}.png`);
+            
+            container.appendChild(img);
+        });
     </script>
 
 </body>
