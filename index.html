@@ -1,25 +1,75 @@
-import React from 'react';
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактор Башня</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .gallery-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* Расстояние между картинками */
+            width: 100%;
+            max-width: 800px;
+        }
+        .block-item {
+            width: 100%;
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .block-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+    </style>
+</head>
+<body>
 
-const BlockList = () => {
-  // Создаем массив имен файлов от 1 до N. 
-  // Если у вас, например, 5 картинок, указываем длину 5.
-  const totalImages = 5; 
-  const images = Array.from({ length: totalImages }, (_, i) => `${i + 1}.png`);
-
-  return (
-    <div className="container">
-      {images.map((imgName, index) => (
-        <div key={index} className="block">
-          {/* Путь ведет в корень папки 3-11 */}
-          <img 
-            src={`./3-11/${imgName}`} 
-            alt={`Блок ${index + 1}`} 
-            style={{ width: '100%', height: 'auto', display: 'block' }}
-          />
+    <div id="blocks-wrapper" class="gallery-container">
         </div>
-      ))}
-    </div>
-  );
-};
 
-export default BlockList;
+    <script>
+        const wrapper = document.getElementById('blocks-wrapper');
+        
+        // Настройки: от какого до какого числа выводить картинки
+        const start = 3;
+        const end = 11;
+
+        for (let i = start; i <= end; i++) {
+            // Создаем элемент блока
+            const block = document.createElement('div');
+            block.className = 'block-item';
+
+            // Создаем саму картинку
+            const img = document.createElement('img');
+            
+            // ПУТЬ: берем из папки 3-11 в корне репозитория
+            // Если расширение другое (например .jpg), замените .png ниже
+            img.src = `./3-11/${i}.png`; 
+            img.alt = `Картинка ${i}`;
+
+            // Если картинка не загрузилась (например, не PNG, а JPG), 
+            // пробуем заменить расширение или просто скрываем битый блок
+            img.onerror = function() {
+                this.src = `./3-11/${i}.jpg`; // Пробуем JPG, если PNG не подошел
+                this.onerror = () => block.style.display = 'none'; 
+            };
+
+            block.appendChild(img);
+            wrapper.appendChild(block);
+        }
+    </script>
+
+</body>
+</html>
