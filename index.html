@@ -1,56 +1,156 @@
-<style>
-    body {
-        margin: 0;
-        /* Установка фона из файла 1.png */
-        background: url('1.png') no-repeat center center fixed;
-        background-size: cover;
-        height: 100vh;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-
-    #game-container {
-        /* Делаем так, чтобы башня вмещалась */
-        display: flex;
-        flex-direction: column-reverse; /* Собираем снизу вверх */
-        align-items: center;
-        justify-content: flex-end;
-        height: 80vh; /* Ограничиваем высоту, чтобы не уходила за экран */
-        margin-bottom: 20px;
-    }
-
-    .block {
-        /* Настройка визуального сходства блоков */
-        width: auto;
-        max-height: 8vh; /* Чтобы 9 блоков точно влезли в экран */
-        object-fit: contain;
-    }
-
-    #preview {
-        background: url('1.png') no-repeat center;
-        background-size: cover;
-        border: 2px solid #fff;
-    }
-</style>
-
-<script>
-    // Твой основной код оставляем, меняем только цикл генерации блоков
-    const gallery = document.getElementById('gallery'); 
-
-    for (let i = 3; i <= 11; i++) {
-        const blockDiv = document.createElement('div');
-        blockDiv.className = 'block-wrapper';
-
-        const img = document.createElement('img');
-        img.src = `${i}.png`; // Файлы из корня
-        img.className = 'block';
-        img.alt = `Блок ${i}`;
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактор Башни</title>
+    <style>
+        * { box-sizing: border-box; }
         
-        // Твои обработчики кликов/drag-and-drop оставляем без изменений
-        // img.onclick = ... 
+        body {
+            margin: 0;
+            padding: 0;
+            /* Твой фон */
+            background: url('1.png') no-repeat center center fixed;
+            background-size: cover;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-family: sans-serif;
+            overflow: hidden;
+        }
 
-        blockDiv.appendChild(img);
-        gallery.appendChild(blockDiv);
-    }
-</script>
+        /* Рабочая область, где стоит башня */
+        #viewport {
+            flex: 1;
+            display: flex;
+            flex-direction: column-reverse; /* Собираем снизу вверх */
+            align-items: center;
+            justify-content: flex-start;
+            padding-bottom: 20px;
+            overflow-y: auto;
+        }
+
+        /* Стиль блока в самой башне */
+        .tower-block {
+            width: 250px; /* Настрой ширину под свои картинки */
+            height: auto;
+            max-height: 9vh; /* Чтобы вся башня (9 блоков) влезла в экран */
+            object-fit: contain;
+            margin-bottom: -5px; /* Небольшой нахлест, чтобы не было дырок */
+            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.3));
+        }
+
+        /* Панель инструментов (редактор) */
+        .editor-panel {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border-top: 2px solid #555;
+        }
+
+        .label {
+            color: white;
+            font-size: 14px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .scroll-container {
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            padding: 10px;
+        }
+
+        /* Картинки в меню выбора */
+        .preview-item {
+            height: 80px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            border-radius: 5px;
+            transition: 0.2s;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .preview-item:hover {
+            transform: translateY(-5px);
+            border-color: #fff;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        button {
+            padding: 8px 20px;
+            cursor: pointer;
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="viewport">
+        </div>
+
+    <div class="editor-panel">
+        <div class="label">ВЫБЕРИТЕ БЛОК ДЛЯ СТРОИТЕЛЬСТВА:</div>
+        
+        <div class="scroll-container" id="palette">
+            </div>
+
+        <div class="controls">
+            <button onclick="removeLast()">Удалить последний</button>
+            <button style="background: #444;" onclick="clearTower()">Очистить всё</button>
+        </div>
+    </div>
+
+    <script>
+        const viewport = document.getElementById('viewport');
+        const palette = document.getElementById('palette');
+
+        // 1. Создаем меню выбора (из корня 3.png - 11.png)
+        for (let i = 3; i <= 11; i++) {
+            const img = document.createElement('img');
+            img.src = `${i}.png`;
+            img.className = 'preview-item';
+            img.title = `Блок ${i}`;
+            
+            img.onclick = () => addBlock(img.src);
+            
+            palette.appendChild(img);
+        }
+
+        // 2. Функция добавления в башню
+        function addBlock(src) {
+            const block = document.createElement('img');
+            block.src = src;
+            block.className = 'tower-block';
+            viewport.appendChild(block);
+            
+            // Автопрокрутка вверх при добавлении
+            viewport.scrollTop = 0;
+        }
+
+        // 3. Удаление
+        function removeLast() {
+            if (viewport.lastChild) {
+                viewport.removeChild(viewport.lastChild);
+            }
+        }
+
+        function clearTower() {
+            viewport.innerHTML = '';
+        }
+    </script>
+</body>
+</html>
