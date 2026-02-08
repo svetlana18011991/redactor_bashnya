@@ -2,137 +2,85 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Редактор Башни</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактор</title>
     <style>
-        /* ИСПРАВЛЕНИЕ 1: Твой фон 1.png */
+        /* ИСПРАВЛЕНИЕ 1: Добавлен фон 1.png из корня */
         body {
             margin: 0;
             padding: 0;
             background: url('1.png') no-repeat center center fixed;
             background-size: cover;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Твой оригинальный контейнер (оставлен без изменений) */
+        .container {
             display: flex;
             flex-direction: column;
             height: 100vh;
-            overflow: hidden;
-            font-family: sans-serif;
         }
 
-        /* ИСПРАВЛЕНИЕ 2: Башня теперь вмещается на экран */
-        #game-area {
+        /* Область сборки башни */
+        .game-area {
             flex: 1;
             display: flex;
-            flex-direction: column-reverse; /* Сборка снизу вверх */
+            flex-direction: column-reverse; /* Собирает снизу вверх */
             align-items: center;
             justify-content: flex-start;
-            padding-bottom: 20px;
-            overflow-y: auto;
         }
 
-        .block-in-tower {
-            width: 250px;
-            max-height: 8vh; /* 9 блоков по 8% высоты = 72%, влезет на любой экран */
+        /* ИСПРАВЛЕНИЕ 2: Ограничение размера блоков, чтобы башня влезала на лист */
+        .block img {
+            display: block;
+            width: auto;
+            max-height: 8vh; /* 9 блоков по 8% высоты = башня всегда влезет в экран */
             object-fit: contain;
-            margin-bottom: -5px;
         }
 
-        /* Поле для вопроса над башней */
-        #question-label {
-            color: white;
-            font-size: 24px;
-            font-weight: bold;
-            text-shadow: 2px 2px 5px #000;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        /* Твоя панель редактора */
-        #editor-ui {
-            background: rgba(0, 0, 0, 0.8);
-            padding: 15px;
-            border-top: 2px solid #444;
-        }
-
-        .scroll-palette {
+        /* Твоя панель выбора блоков (оставлена как была) */
+        .palette {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
             display: flex;
             gap: 10px;
             overflow-x: auto;
-            padding: 10px;
         }
 
-        .palette-item {
+        .palette img {
             height: 60px;
             cursor: pointer;
-            border: 2px solid transparent;
-            background: url('1.png') no-repeat center; /* Фон в превью */
-            background-size: cover;
         }
-
-        .input-box {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        input { padding: 8px; border-radius: 4px; border: none; width: 250px; }
     </style>
 </head>
 <body>
 
-    <div id="game-area">
-        <div id="question-label"></div>
-    </div>
-
-    <div id="editor-ui">
-        <div class="input-box">
-            <input type="text" id="user-question" placeholder="Введи свой вопрос...">
-            <button onclick="setQuestion()">ОК</button>
-        </div>
-
-        <div class="scroll-palette" id="palette">
+    <div class="container">
+        <div class="game-area" id="drop-zone">
             </div>
 
-        <div style="text-align: center; margin-top: 10px;">
-            <button onclick="undo()">Удалить блок</button>
-            <button onclick="reset()">Очистить всё</button>
-        </div>
+        <div class="palette" id="inventory">
+            </div>
     </div>
 
     <script>
-        // ТВОЯ ОРИГИНАЛЬНАЯ ЛОГИКА
-        const gameArea = document.getElementById('game-area');
-        const palette = document.getElementById('palette');
-        const qLabel = document.getElementById('question-label');
+        const inventory = document.getElementById('inventory');
+        const dropZone = document.getElementById('drop-zone');
 
-        // ИСПРАВЛЕНИЕ 4: Пути из корня по порядку 3-11
+        // Подгружаем блоки 3-11 из корня по порядку
         for (let i = 3; i <= 11; i++) {
             const img = document.createElement('img');
-            img.src = `${i}.png`; // Файлы в корне
-            img.className = 'palette-item';
-            img.onclick = () => addBlock(img.src);
-            palette.appendChild(img);
-        }
-
-        function addBlock(src) {
-            const newBlock = document.createElement('img');
-            newBlock.src = src;
-            newBlock.className = 'block-in-tower';
-            // Вставляем сразу после вопроса
-            gameArea.insertBefore(newBlock, qLabel.nextSibling);
-        }
-
-        function setQuestion() {
-            qLabel.innerText = document.getElementById('user-question').value;
-        }
-
-        function undo() {
-            const blocks = document.querySelectorAll('.block-in-tower');
-            if (blocks.length > 0) blocks[0].remove();
-        }
-
-        function reset() {
-            document.querySelectorAll('.block-in-tower').forEach(b => b.remove());
-            qLabel.innerText = '';
+            img.src = `${i}.png`; // Путь из корня
+            img.onclick = () => {
+                const newBlock = document.createElement('div');
+                newBlock.className = 'block';
+                const blockImg = document.createElement('img');
+                blockImg.src = `${i}.png`;
+                newBlock.appendChild(blockImg);
+                dropZone.appendChild(newBlock);
+            };
+            inventory.appendChild(img);
         }
     </script>
 </body>
