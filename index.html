@@ -1,1 +1,2017 @@
 
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Башня — Editor + Game (Genially iframe)</title>
+
+  <style>
+    :root{
+      --text:#eaf0ff;
+      --muted:#a9b6e6;
+      --border: rgba(255,255,255,.10);
+      --shadow2: 0 12px 34px rgba(0,0,0,.40);
+      --radius: 18px;
+      --radius2: 22px;
+
+      --neon:#39ff76;
+      --neon2:#00ffb3;
+      --danger:#ff4d4d;
+      --ok:#2dd27d;
+    }
+
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+
+    body{
+      margin:0;color:var(--text);
+      background:
+        radial-gradient(1100px 700px at 12% 18%, rgba(106,164,255,.16) 0%, rgba(5,8,22,0) 58%),
+        radial-gradient(900px 640px at 88% 16%, rgba(155,123,255,.12) 0%, rgba(5,8,22,0) 62%),
+        radial-gradient(1000px 780px at 55% 112%, rgba(45,210,125,.10) 0%, rgba(5,8,22,0) 58%),
+        linear-gradient(180deg, rgba(10,14,40,.65), rgba(5,8,22,1));
+      min-height:100vh;
+    }
+    body.gameOnly{background:transparent}
+
+    .app{
+      display:grid;
+      grid-template-columns: 460px 1fr;
+      gap:14px;
+      padding:14px;
+      max-width: 1540px;
+      margin: 0 auto;
+    }
+    @media (max-width: 1020px){
+      .app{grid-template-columns:1fr}
+    }
+
+    .panel{
+      background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
+      border:1px solid var(--border);
+      border-radius:var(--radius2);
+      box-shadow:var(--shadow2);
+      backdrop-filter: blur(10px);
+      overflow:hidden;
+      position:relative;
+    }
+
+    .panel-header{
+      padding:12px 14px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+    }
+    .panel-header .h{font-weight:950;letter-spacing:.2px}
+    .panel-body{padding:14px}
+
+    .settings{
+      height: calc(100vh - 28px);
+      display:flex;
+      flex-direction:column;
+      min-height: 560px;
+    }
+    .settings .panel-body{
+      overflow:auto;
+      padding:14px;
+    }
+
+    .section{
+      padding:12px 12px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.16);
+      margin-bottom:12px;
+    }
+    .section .title{
+      font-weight:950;
+      font-size:13.5px;
+      margin-bottom:10px;
+      color:rgba(255,255,255,.92);
+      display:flex;align-items:center;justify-content:space-between;gap:8px;
+    }
+
+    .muted{color:var(--muted); font-size:12.5px; line-height:1.35}
+
+    label{
+      display:block;
+      font-size:12.5px;
+      color:rgba(255,255,255,.86);
+      margin:10px 0 6px
+    }
+
+    input[type="text"], input[type="number"], textarea, select{
+      width:100%;
+      border-radius:14px;
+      padding:10px 11px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(0,0,0,.25);
+      color:var(--text);
+      outline:none;
+    }
+    textarea{min-height:84px; resize:vertical}
+
+    input[type="file"]{
+      width:100%;
+      border-radius:14px;
+      padding:10px 11px;
+      border:1px dashed rgba(255,255,255,.22);
+      background:rgba(0,0,0,.18);
+      color:var(--muted);
+    }
+
+    .row{display:flex; gap:10px; flex-wrap:wrap}
+    .row > *{flex:1; min-width:170px}
+
+    .toggle{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 10px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.04);
+      margin-top:8px;
+    }
+    .toggle input{width:18px; height:18px}
+
+    .btn{
+      padding:11px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      cursor:pointer;
+      font-weight:950;
+      font-size:14px;
+      transition:transform .08s ease, background .15s ease, border-color .15s ease, box-shadow .2s ease;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:hover{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.24)}
+    .btn:active{transform:translateY(1px)}
+    .btn:disabled{opacity:.45; cursor:not-allowed}
+
+    .btn.primary{
+      background:linear-gradient(90deg, rgba(57,255,118,.28), rgba(0,255,179,.18));
+      border-color:rgba(57,255,118,.34);
+      box-shadow: 0 10px 26px rgba(57,255,118,.12);
+    }
+    .btn.danger{border-color:rgba(255,77,77,.35); background:rgba(255,77,77,.08)}
+    .btn.small{padding:8px 10px; font-size:12.5px; border-radius:12px}
+
+    .q-list{display:flex; flex-direction:column; gap:10px;}
+    .q-item{
+      padding:10px 10px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.04);
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .q-item .meta{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width:0;
+      padding-top:3px;
+    }
+    .q-item .meta .t{
+      font-weight:900;
+      font-size:13px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis
+    }
+    .q-item .meta .s{
+      color:var(--muted);
+      font-size:12px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 8px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:900;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(0,0,0,.18);
+      color:rgba(255,255,255,.92);
+    }
+
+    .preview{
+      min-height: calc(100vh - 28px);
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      padding:0;
+      overflow:hidden;
+    }
+    .preview-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:12px 14px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
+    }
+    .preview-top .name{font-weight:950; letter-spacing:.2px}
+    .preview-top .hint{color:var(--muted); font-size:12.5px}
+
+    .preview-stage{
+      position:relative;
+      border-radius:var(--radius2);
+      border:1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+      min-height: 720px;
+      background:rgba(0,0,0,.18);
+      box-shadow: var(--shadow2);
+    }
+
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:16px;
+      transform:translateX(-50%);
+      background:rgba(0,0,0,.55);
+      border:1px solid rgba(255,255,255,.14);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:14px;
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow2);
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .18s ease, transform .18s ease;
+      z-index:999999;
+    }
+    .toast.show{
+      opacity:1;
+      transform:translateX(-50%) translateY(-4px)
+    }
+
+    .modal-backdrop{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.55);
+      backdrop-filter: blur(8px);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:999998;
+      padding:14px;
+    }
+
+    .modal{
+      width:min(820px, 100%);
+      border-radius:20px;
+      border:1px solid rgba(255,255,255,.14);
+      background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.05));
+      box-shadow: 0 30px 80px rgba(0,0,0,.55);
+      overflow:hidden;
+    }
+    .modal-head{
+      padding:12px 14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+    }
+    .modal-head .h{font-weight:950}
+    .modal-body{padding:14px}
+    .modal-foot{
+      padding:12px 14px;
+      border-top:1px solid rgba(255,255,255,.10);
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+    }
+
+    .choiceBlock{
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.14);
+      border-radius:14px;
+      padding:10px;
+      margin-top:10px;
+    }
+
+    .answerRow{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      margin-top:8px;
+    }
+    .answerRow input[type="text"]{flex:1; min-width:0}
+
+    .radio{
+      width:18px;
+      height:18px;
+      accent-color: var(--neon);
+      flex:0 0 auto;
+    }
+
+    .errbar{
+      display:none;
+      margin:12px 14px 0;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,77,77,.35);
+      background:rgba(255,77,77,.10);
+      color:#ffd6d6;
+      font-size:13px;
+      line-height:1.35;
+      white-space:pre-wrap;
+    }
+    .errbar.show{display:block}
+  </style>
+</head>
+
+<body>
+  <div class="app" id="editorRoot">
+    <div class="panel settings">
+      <div class="panel-header">
+        <div class="h">Редактор «Башня»</div>
+        <div class="row" style="margin:0">
+          <button class="btn primary" id="btnCopyCode" type="button">📋 Скопировать код (iframe)</button>
+        </div>
+      </div>
+
+      <div class="errbar" id="errbar"></div>
+
+      <div class="panel-body">
+
+        <div class="section">
+          <div class="title">Название</div>
+
+          <label>Заголовок в игре</label>
+          <input id="inpTitle" type="text" value="Башня знаний" />
+        </div>
+
+        <div class="section">
+          <div class="title">Фон игры</div>
+
+          <label>Загрузить фон (опционально)</label>
+          <input id="fileBg" type="file" accept="image/*" />
+
+          <div class="muted" style="margin-top:8px">
+            Если не загрузить — будет стильный дефолтный фон (градиенты).
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="title">Блоки башни</div>
+
+          <div class="toggle">
+            <input id="chkUseImages" type="checkbox" />
+            <div>
+              <div style="font-weight:900">Использовать картинки блоков (3.png…11.png)</div>
+              <div class="muted">Если выключено — блоки рисуются CSS (и всё работает без картинок).</div>
+            </div>
+          </div>
+
+          <div class="muted" style="margin-top:8px">
+            Если включишь — положи в корень репозитория файлы <b>3.png…11.png</b>.
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="title">Таймер</div>
+
+          <div class="toggle">
+            <input id="chkTimer" type="checkbox" />
+            <div>
+              <div style="font-weight:900">Включить таймер</div>
+              <div class="muted">Если время вышло — ответ неверный, блок сгорает.</div>
+            </div>
+          </div>
+
+          <label>Секунд на вопрос</label>
+          <input id="inpSeconds" type="number" min="5" max="600" step="1" value="30" />
+        </div>
+
+        <div class="section">
+          <div class="title">Вопросы <span class="pill" id="pillCount">0 / 9</span></div>
+
+          <div class="row">
+            <button class="btn primary" id="btnAddQ" type="button">➕ Добавить</button>
+            <button class="btn" id="btnClearQs" type="button">🧹 Очистить</button>
+          </div>
+
+          <div class="q-list" id="qList" style="margin-top:12px"></div>
+
+          <div class="muted" style="margin-top:10px">
+            Строго <b>9 вопросов</b>. Можно: <b>выбор</b> или <b>ввод</b> (несколько правильных вариантов).
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="title">Экспорт в Genially</div>
+          <div class="muted">
+            Нажми <b>«📋 Скопировать код»</b> — в буфере будет готовый <b>iframe</b>.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="panel preview">
+      <div class="preview-top">
+        <div>
+          <div class="name">Просмотр</div>
+          <div class="hint">Живое превью (как в твоём плеере)</div>
+        </div>
+        <div class="muted">Башня + карточки + финальный экран</div>
+      </div>
+
+      <div class="panel-body">
+        <div class="preview-stage">
+          <iframe id="livePreview" title="Preview" style="width:100%;height:720px;border:0;background:transparent;border-radius:18px;overflow:hidden" allow="autoplay; fullscreen" allowfullscreen></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <div class="h" id="modalTitle">Добавить вопрос</div>
+        <button class="btn small danger" id="btnCloseModal" type="button">Закрыть</button>
+      </div>
+
+      <div class="modal-body">
+        <label>Тип вопроса</label>
+        <select id="selType">
+          <option value="choice" selected>С выбором ответа</option>
+          <option value="text">С вводом ответа</option>
+        </select>
+
+        <label>Вопрос</label>
+        <textarea id="inpPrompt" placeholder="Введите вопрос..."></textarea>
+
+        <div id="choiceWrap" class="choiceBlock">
+          <div style="font-weight:900">Варианты ответа</div>
+          <div class="muted">Минимум 2 варианта. Отметь верный радиокнопкой.</div>
+          <div id="choiceList"></div>
+          <button class="btn small" id="btnAddChoice" type="button" style="margin-top:10px">➕ Добавить вариант</button>
+        </div>
+
+        <div id="textWrap" class="choiceBlock" style="display:none">
+          <div style="font-weight:900">Верные ответы (ввод)</div>
+          <div class="muted">Можно несколько вариантов — принимается любой.</div>
+          <div id="textList"></div>
+          <button class="btn small" id="btnAddText" type="button" style="margin-top:10px">➕ Добавить вариант</button>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn" id="btnPreviewDraft" type="button">👁 Показать в превью</button>
+        <button class="btn primary" id="btnSaveQ" type="button">💾 Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Скопировано</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const errbar = document.getElementById("errbar");
+  function showErr(msg){
+    if (!errbar) return;
+    errbar.classList.add("show");
+    errbar.textContent = "Ошибка JS:\\n" + msg;
+  }
+  window.addEventListener("error", (e) => {
+    const m = e?.error?.stack || e?.message || String(e);
+    showErr(m);
+  });
+  window.addEventListener("unhandledrejection", (e) => {
+    const m = e?.reason?.stack || e?.reason?.message || String(e?.reason || e);
+    showErr(m);
+  });
+
+  const $ = (id)=>document.getElementById(id);
+
+  function uid(){
+    return "q_" + Math.random().toString(36).slice(2,9) + "_" + Date.now().toString(36);
+  }
+  function deepClone(obj){ return JSON.parse(JSON.stringify(obj)); }
+
+  function toast(msg){
+    const t = $("toast");
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(()=>t.classList.remove("show"), 1400);
+  }
+
+  function escapeAttr(s){
+    return String(s ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;");
+  }
+
+  function escapeHtml(s){
+    return String(s ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function fileToDataUrl(file){
+    return new Promise((resolve,reject)=>{
+      const r = new FileReader();
+      r.onload = ()=>resolve(String(r.result || ""));
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+
+  async function copyToClipboard(text){
+    try{
+      if (navigator.clipboard && window.isSecureContext){
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    }catch(e){}
+    try{
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.left = "0";
+      ta.style.top = "0";
+      ta.style.opacity = "0";
+      ta.style.width = "1px";
+      ta.style.height = "1px";
+      ta.style.pointerEvents = "none";
+      ta.style.zIndex = "-1";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return ok;
+    }catch(e){
+      return false;
+    }
+  }
+
+  // Абсолютная база для GitHub Pages, чтобы картинки работали внутри srcdoc
+  const base = location.origin + location.pathname.replace(/\/[^\/]*$/, "/");
+  const blockUrls = Array.from({length:9}, (_,i)=> base + (i+3) + ".png"); // 3..11
+
+  // ===================== GAME (srcdoc) =====================
+  function buildGameSrcdoc(cfg){
+    return `<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Башня</title>
+<style>
+  :root{
+    --text:#eaf0ff;
+    --muted:rgba(255,255,255,.78);
+    --border: rgba(255,255,255,.12);
+    --glass: rgba(255,255,255,.08);
+    --glass2: rgba(0,0,0,.22);
+    --shadow: 0 18px 56px rgba(0,0,0,.45);
+    --radius: 18px;
+    --neon:#39ff76;
+    --neon2:#00ffb3;
+    --danger:#ff4d4d;
+    --ok:#2dd27d;
+  }
+
+  *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  html,body{height:100%}
+  body{margin:0;background:transparent;color:var(--text)}
+
+  .stage{
+    position:relative;
+    width:100%;
+    height:100%;
+    min-height:720px;
+    overflow:hidden;
+    border-radius:18px;
+    background:
+      radial-gradient(1100px 700px at 12% 18%, rgba(106,164,255,.18) 0%, rgba(5,8,22,0) 58%),
+      radial-gradient(900px 640px at 88% 16%, rgba(155,123,255,.14) 0%, rgba(5,8,22,0) 62%),
+      radial-gradient(1000px 780px at 55% 112%, rgba(45,210,125,.12) 0%, rgba(5,8,22,0) 58%),
+      linear-gradient(180deg, rgba(10,14,40,.60), rgba(5,8,22,1));
+  }
+
+  .bg{
+    position:absolute; inset:0;
+    background-position:center;
+    background-size:cover;
+    opacity: .92;
+    transform: scale(1.02);
+    filter: saturate(1.05) contrast(1.02);
+    pointer-events:none;
+  }
+  .overlay{
+    position:absolute; inset:0;
+    background: radial-gradient(900px 620px at 50% 35%, rgba(0,0,0,0) 0%, rgba(0,0,0,.40) 70%);
+    pointer-events:none;
+  }
+
+  .topbar{
+    position:absolute;
+    left:12px; right:12px; top:12px;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px; flex-wrap:wrap;
+    padding:10px 12px;
+    border-radius:16px;
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.06);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 14px 40px rgba(0,0,0,.25);
+    z-index:30;
+  }
+  .leftPack{display:flex; flex-direction:column; gap:2px; min-width:220px}
+  .title{font-weight:950; letter-spacing:.2px}
+  .sub{color:rgba(255,255,255,.78); font-size:12px}
+
+  .rightPack{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end}
+
+  .pill{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:7px 10px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(0,0,0,.18);
+    color:rgba(255,255,255,.92);
+    font-weight:900;
+    font-size:12px;
+    user-select:none;
+  }
+  .timerBadge{
+    border-color: rgba(57,255,118,.22);
+    box-shadow: 0 0 18px rgba(57,255,118,.14);
+  }
+
+  .progressWrap{
+    width:260px; max-width:60vw;
+    height:12px;
+    border-radius:999px;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.06);
+  }
+  .progressBar{
+    height:100%;
+    width:0%;
+    background: linear-gradient(90deg, rgba(57,255,118,.35), rgba(57,255,118,.95));
+    box-shadow: 0 0 14px rgba(57,255,118,.35);
+    transition: width .25s ease;
+  }
+
+  .towerArea{
+    position:absolute;
+    left:0; right:0; top:0; bottom:0;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:10;
+    padding-bottom: 96px;
+  }
+  .tower{
+    position:relative;
+    width:min(320px, 70vw);
+    height: calc(100% - 170px);
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    pointer-events:none;
+  }
+
+  /* CSS-блоки */
+  .cssBlock{
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+    width:min(280px, 64vw);
+    height:78px;
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,.18);
+    background:
+      radial-gradient(260px 100px at 30% 30%, rgba(255,255,255,.10), rgba(0,0,0,0) 60%),
+      linear-gradient(180deg, rgba(57,255,118,.12), rgba(0,0,0,.18));
+    box-shadow: 0 22px 34px rgba(0,0,0,.35);
+    overflow:hidden;
+    filter: drop-shadow(0 14px 16px rgba(0,0,0,.30));
+  }
+  .cssBlock::after{
+    content:"";
+    position:absolute; inset:10px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,.10);
+    opacity:.9;
+  }
+
+  /* Картинки-блоки */
+  .imgBlock{
+    position:absolute;
+    left:50%;
+    transform: translateX(-50%);
+    will-change: transform, top, opacity, filter;
+    filter: drop-shadow(0 18px 20px rgba(0,0,0,.35));
+  }
+
+  .burning{
+    filter: grayscale(.15) brightness(.72) contrast(1.1) sepia(.28) saturate(1.15) !important;
+    opacity:.96;
+  }
+
+  .nextWrap{
+    position:absolute;
+    left:0; right:0;
+    bottom: 22px;
+    display:flex;
+    justify-content:center;
+    z-index:35;
+    pointer-events:auto;
+  }
+  .hintUnder{
+    position:absolute;
+    left:0; right:0;
+    bottom: 66px;
+    display:flex;
+    justify-content:center;
+    z-index:35;
+    pointer-events:none;
+  }
+  .hintBubble{
+    padding:8px 10px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(0,0,0,.20);
+    backdrop-filter: blur(10px);
+    font-size:12px;
+    color:rgba(255,255,255,.9);
+    max-width:min(760px, 92vw);
+    text-align:center;
+    box-shadow: 0 18px 50px rgba(0,0,0,.20);
+  }
+
+  .btn{
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.06);
+    color:rgba(255,255,255,.95);
+    cursor:pointer;
+    font-weight:950;
+    font-size:14px;
+    transition:transform .08s ease, background .15s ease, border-color .15s ease, opacity .15s ease;
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    user-select:none;
+    white-space:nowrap;
+  }
+  .btn:hover{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.24)}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.45; cursor:not-allowed}
+  .btn.primary{
+    background: linear-gradient(90deg, rgba(57,255,118,.22), rgba(0,255,179,.18));
+    border-color: rgba(57,255,118,.30);
+    box-shadow: 0 12px 30px rgba(57,255,118,.10);
+  }
+
+  /* Card modal */
+  .cardBack{
+    position:absolute; inset:0;
+    background:rgba(0,0,0,.55);
+    backdrop-filter: blur(8px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:40;
+    padding:14px;
+  }
+
+  .card{
+    width:min(760px, 96vw);
+    border-radius:20px;
+    border:1px solid rgba(255,255,255,.14);
+    background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.05));
+    box-shadow: 0 30px 90px rgba(0,0,0,.55);
+    overflow:hidden;
+    transform: translateY(12px) scale(.985);
+    opacity:0;
+    animation: cardIn .32s ease-out forwards;
+  }
+  @keyframes cardIn{ to{ transform:none; opacity:1; } }
+
+  .cardHead{
+    padding:12px 14px;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px;
+    border-bottom:1px solid rgba(255,255,255,.10);
+  }
+  .cardHead .h{font-weight:950}
+  .cardBody{padding:14px}
+  .cardFoot{
+    padding:12px 14px;
+    border-top:1px solid rgba(255,255,255,.10);
+    display:flex;
+    gap:10px;
+    justify-content:flex-end;
+    flex-wrap:wrap;
+  }
+
+  .block{
+    padding:12px 12px;
+    border-radius:16px;
+    background:rgba(0,0,0,.18);
+    border:1px solid rgba(255,255,255,.10);
+  }
+  .block .label{font-size:12px;color:rgba(255,255,255,.70);margin-bottom:8px;font-weight:900}
+  .qText{white-space:pre-wrap; font-size:16px; line-height:1.35}
+
+  .answers{display:flex; flex-wrap:wrap; gap:8px}
+  .pillBtn{
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:8px 10px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(0,0,0,.18);
+    color:rgba(255,255,255,.92);
+    font-weight:900;
+    font-size:13px;
+    cursor:pointer;
+    user-select:none;
+    transition:transform .08s ease, background .15s ease, border-color .15s ease, opacity .15s ease;
+  }
+  .pillBtn:hover{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.24)}
+  .pillBtn:active{transform:translateY(1px)}
+  .pillBtn.good{border-color: rgba(45,210,125,.55); background: rgba(45,210,125,.16)}
+  .pillBtn.bad{border-color: rgba(255,77,77,.55); background: rgba(255,77,77,.12)}
+
+  .inputRow{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  .inp{
+    flex:1; min-width:220px;
+    border-radius:14px;
+    padding:10px 11px;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(0,0,0,.25);
+    color:rgba(255,255,255,.92);
+    outline:none;
+  }
+
+  /* Floating +100 */
+  .floatPlus{
+    position:absolute;
+    left:50%;
+    transform: translateX(-50%);
+    color: rgba(57,255,118,.96);
+    font-weight:1000;
+    text-shadow: 0 0 10px rgba(57,255,118,.35);
+    pointer-events:none;
+    z-index:45;
+    animation: plusFly .9s ease-out forwards;
+  }
+  @keyframes plusFly{
+    0%{opacity:0; transform:translateX(-50%) translateY(10px) scale(.98)}
+    20%{opacity:1}
+    100%{opacity:0; transform:translateX(-50%) translateY(-70px) scale(1.05)}
+  }
+
+  /* Particles */
+  .spark{
+    position:absolute;
+    width:6px;height:6px;
+    border-radius:999px;
+    background: rgba(255,220,120,.95);
+    box-shadow: 0 0 10px rgba(255,200,80,.35);
+    pointer-events:none;
+    z-index:44;
+    animation: sparkFly .7s ease-out forwards;
+  }
+  @keyframes sparkFly{
+    to{
+      opacity:0;
+      transform: translate(var(--dx), var(--dy)) scale(.4);
+      filter: blur(0.2px);
+    }
+  }
+
+  .smoke{
+    position:absolute;
+    width:18px;height:18px;
+    border-radius:999px;
+    background: rgba(120,120,120,.35);
+    filter: blur(1px);
+    pointer-events:none;
+    z-index:43;
+    animation: smokeFly 1.0s ease-out forwards;
+  }
+  @keyframes smokeFly{
+    0%{opacity:0; transform: translate(0,0) scale(.8)}
+    20%{opacity:1}
+    100%{opacity:0; transform: translate(var(--dx), var(--dy)) scale(1.6)}
+  }
+
+  /* Finish */
+  .finish{
+    position:absolute; inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:60;
+    padding:14px;
+  }
+  .finishCard{
+    width:min(820px, 96vw);
+    border-radius:22px;
+    border:1px solid rgba(255,255,255,.14);
+    background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.05));
+    box-shadow: 0 36px 110px rgba(0,0,0,.60);
+    overflow:hidden;
+  }
+  .finishHead{
+    padding:14px 16px;
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    border-bottom:1px solid rgba(255,255,255,.10);
+  }
+  .finishHead .h{font-weight:1000; font-size:18px}
+  .finishBody{padding:14px 16px}
+  .grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:12px;
+  }
+  @media (max-width:720px){ .grid{grid-template-columns:1fr} }
+  .stat{
+    padding:12px 12px;
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(0,0,0,.18);
+  }
+  .stat .k{color:rgba(255,255,255,.75); font-size:12px; font-weight:900}
+  .stat .v{font-size:22px; font-weight:1000; margin-top:4px}
+  .bigMsg{
+    margin-top:12px;
+    padding:14px 14px;
+    border-radius:18px;
+    border:1px solid rgba(57,255,118,.25);
+    background:rgba(57,255,118,.08);
+  }
+  .bigMsg .h{font-weight:1000; font-size:18px}
+  .bigMsg .p{color:rgba(255,255,255,.85); margin-top:6px; line-height:1.35}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="bg" id="bg" style="display:none"></div>
+  <div class="overlay"></div>
+
+  <div class="topbar">
+    <div class="leftPack">
+      <div class="title" id="tTitle">Башня</div>
+      <div class="sub">Отвечай правильно — строй башню!</div>
+    </div>
+
+    <div class="rightPack">
+      <div class="pill" id="pillRemain">Осталось: 9</div>
+      <div class="pill timerBadge" id="pillTimer" style="display:none">⏳ 00:30</div>
+      <div class="pill" id="pillScore">💎 Счёт: 0</div>
+      <div class="progressWrap"><div class="progressBar" id="bar"></div></div>
+    </div>
+  </div>
+
+  <div class="towerArea">
+    <div class="tower" id="tower"></div>
+  </div>
+
+  <div class="hintUnder">
+    <div class="hintBubble" id="hint">Первый блок уже летит…</div>
+  </div>
+
+  <div class="nextWrap">
+    <button class="btn primary" id="btnNext" type="button" disabled>Далее →</button>
+  </div>
+
+  <div class="cardBack" id="cardBack" aria-hidden="true">
+    <div class="card" role="dialog" aria-modal="true">
+      <div class="cardHead">
+        <div class="h" id="cardTitle">Вопрос</div>
+        <div class="pill" id="cardType">Тип</div>
+      </div>
+
+      <div class="cardBody">
+        <div class="block">
+          <div class="label">Вопрос</div>
+          <div class="qText" id="qText"></div>
+        </div>
+
+        <div style="height:10px"></div>
+
+        <div class="block">
+          <div class="label">Ответ</div>
+          <div class="answers" id="answers"></div>
+        </div>
+
+        <div style="height:8px"></div>
+        <div class="sub" id="miniHint" style="color:rgba(255,255,255,.80)"></div>
+      </div>
+
+      <div class="cardFoot">
+        <button class="btn" id="btnNoClose" type="button">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="finish" id="finish">
+    <div class="finishCard">
+      <div class="finishHead">
+        <div class="h">Молодец! 🎉</div>
+        <button class="btn" id="btnRestart" type="button">Сыграть ещё раз</button>
+      </div>
+      <div class="finishBody">
+        <div class="grid">
+          <div class="stat"><div class="k">Правильных</div><div class="v" id="finCorrect">0</div></div>
+          <div class="stat"><div class="k">Неправильных</div><div class="v" id="finWrong">0</div></div>
+          <div class="stat"><div class="k">Баллы</div><div class="v" id="finScore">0</div></div>
+          <div class="stat"><div class="k">Башня (блоков)</div><div class="v" id="finHeight">0</div></div>
+        </div>
+
+        <div class="bigMsg">
+          <div class="h">Обратная связь: <span style="color:rgba(57,255,118,.95)">молодец</span> 💚</div>
+          <div class="p" id="finText">Отличная работа! Попробуй ещё раз и собери башню полностью.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+
+const cfg = ${JSON.stringify(cfg)};
+
+function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
+function normStr(s){ return String(s ?? "").trim().toLowerCase(); }
+function fmt(s){
+  const m = Math.floor(s/60);
+  const ss = s%60;
+  return String(m).padStart(2,"0")+":"+String(ss).padStart(2,"0");
+}
+
+function beep(type="ok"){
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    const now = ctx.currentTime;
+    g.gain.setValueAtTime(0.001, now);
+
+    if(type==="ok"){
+      o.type="sine";
+      o.frequency.setValueAtTime(740, now);
+      g.gain.exponentialRampToValueAtTime(0.18, now+0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, now+0.16);
+      o.start(now); o.stop(now+0.18);
+    } else {
+      o.type="square";
+      o.frequency.setValueAtTime(180, now);
+      g.gain.exponentialRampToValueAtTime(0.22, now+0.02);
+      o.frequency.exponentialRampToValueAtTime(90, now+0.12);
+      g.gain.exponentialRampToValueAtTime(0.001, now+0.22);
+      o.start(now); o.stop(now+0.24);
+    }
+  }catch(e){}
+}
+
+function makeSparks(x,y, count=14){
+  const stage = document.getElementById("stage");
+  for(let i=0;i<count;i++){
+    const s = document.createElement("div");
+    s.className = "spark";
+    const a = Math.random()*Math.PI*2;
+    const r = 40 + Math.random()*70;
+    const dx = Math.cos(a)*r;
+    const dy = Math.sin(a)*r - (20+Math.random()*40);
+    s.style.left = x + "px";
+    s.style.top = y + "px";
+    s.style.setProperty("--dx", dx+"px");
+    s.style.setProperty("--dy", dy+"px");
+    stage.appendChild(s);
+    setTimeout(()=>s.remove(), 800);
+  }
+  for(let i=0;i<8;i++){
+    const m = document.createElement("div");
+    m.className = "smoke";
+    const a = Math.random()*Math.PI*2;
+    const r = 30 + Math.random()*60;
+    const dx = Math.cos(a)*r;
+    const dy = Math.sin(a)*r - (40+Math.random()*40);
+    m.style.left = x + "px";
+    m.style.top = y + "px";
+    m.style.setProperty("--dx", dx+"px");
+    m.style.setProperty("--dy", dy+"px");
+    stage.appendChild(m);
+    setTimeout(()=>m.remove(), 1100);
+  }
+}
+
+function floatPlus(x,y, text){
+  const stage = document.getElementById("stage");
+  const p = document.createElement("div");
+  p.className = "floatPlus";
+  p.textContent = text;
+  p.style.left = x+"px";
+  p.style.top = y+"px";
+  stage.appendChild(p);
+  setTimeout(()=>p.remove(), 1000);
+}
+
+function towerCenter(){
+  const stage = document.getElementById("stage");
+  const tower = document.getElementById("tower");
+  const rs = stage.getBoundingClientRect();
+  const rt = tower.getBoundingClientRect();
+  return {
+    x: rt.left + rt.width/2 - rs.left,
+    yTop: rt.top - rs.top,
+    h: rt.height
+  };
+}
+
+function isImageMode(){
+  return !!cfg.useImages;
+}
+
+function createBlockEl(i, width){
+  const tower = document.getElementById("tower");
+
+  if(isImageMode() && cfg.blockUrls && cfg.blockUrls[i]){
+    const img = document.createElement("img");
+    img.className = "imgBlock";
+    img.src = cfg.blockUrls[i];
+    img.alt = "block";
+    img.style.width = width + "px";
+    tower.appendChild(img);
+    return { el: img, kind:"img" };
+  }
+
+  const b = document.createElement("div");
+  b.className = "cssBlock";
+  b.style.width = width + "px";
+  tower.appendChild(b);
+  return { el: b, kind:"css" };
+}
+
+function run(){
+  const stage = document.getElementById("stage");
+  const bg = document.getElementById("bg");
+  const tower = document.getElementById("tower");
+
+  const tTitle = document.getElementById("tTitle");
+  const pillRemain = document.getElementById("pillRemain");
+  const pillTimer = document.getElementById("pillTimer");
+  const pillScore = document.getElementById("pillScore");
+  const bar = document.getElementById("bar");
+  const hint = document.getElementById("hint");
+  const btnNext = document.getElementById("btnNext");
+
+  const cardBack = document.getElementById("cardBack");
+  const qText = document.getElementById("qText");
+  const answers = document.getElementById("answers");
+  const miniHint = document.getElementById("miniHint");
+  const cardType = document.getElementById("cardType");
+  const btnNoClose = document.getElementById("btnNoClose");
+
+  const finish = document.getElementById("finish");
+  const btnRestart = document.getElementById("btnRestart");
+  const finCorrect = document.getElementById("finCorrect");
+  const finWrong = document.getElementById("finWrong");
+  const finScore = document.getElementById("finScore");
+  const finHeight = document.getElementById("finHeight");
+  const finText = document.getElementById("finText");
+
+  const questions = (cfg.questions || []).slice(0,9);
+  while(questions.length < 9){
+    questions.push({type:"choice", prompt:"(пустой вопрос)", options:["OK","..."], correctIndex:0});
+  }
+
+  tTitle.textContent = cfg.title || "Башня";
+
+  if(cfg.bgDataUrl){
+    bg.style.display = "block";
+    bg.style.backgroundImage = 'url("' + cfg.bgDataUrl + '")';
+  }
+
+  let timerEnabled = !!cfg.timer?.enabled;
+  let timerSeconds = clamp(Number(cfg.timer?.seconds || 30), 5, 600);
+  let timerLeft = timerSeconds;
+  let timerId = null;
+
+  let qIndex = 0;
+  let correct = 0;
+  let wrong = 0;
+  let score = 0;
+
+  // стек блоков
+  let stack = []; // {el, h, y}
+  let falling = null; // {el, y, targetY, vel, h, state, springT, idx}
+
+  // геометрия
+  const blockW = Math.min(280, Math.max(200, Math.floor(window.innerWidth * 0.30)));
+  const cssBlockH = 78;
+  const overlap = 10; // перекрытие против щелей (как ты просила)
+
+  function stackHeight(){
+    let h=0;
+    for(let i=0;i<stack.length;i++){
+      h += stack[i].h;
+      if(i>0) h -= overlap;
+    }
+    return h;
+  }
+
+  function baseY(){
+    return tower.clientHeight;
+  }
+
+  function placeStackInstant(){
+    let y = baseY();
+    for(let i=0;i<stack.length;i++){
+      y -= stack[i].h;
+      stack[i].y = y;
+      stack[i].el.style.top = y + "px";
+      if(i < stack.length-1) y += overlap;
+    }
+  }
+
+  function updateTopUI(){
+    const remain = 9 - qIndex;
+    pillRemain.textContent = "Осталось: " + remain;
+    pillScore.textContent = "💎 Счёт: " + score;
+    bar.style.width = (qIndex/9*100) + "%";
+  }
+
+  function stopTimer(){
+    if(timerId){ clearInterval(timerId); timerId = null; }
+  }
+  function startTimer(){
+    stopTimer();
+    if(!timerEnabled){ pillTimer.style.display="none"; return; }
+    timerLeft = timerSeconds;
+    pillTimer.style.display="";
+    pillTimer.textContent = "⏳ " + fmt(timerLeft);
+    timerId = setInterval(()=>{
+      timerLeft--;
+      pillTimer.textContent = "⏳ " + fmt(timerLeft);
+      if(timerLeft <= 0){
+        stopTimer();
+        if(falling && falling.state === "waitAnswer"){
+          resolveAnswer(false, true);
+        }
+      }
+    }, 1000);
+  }
+
+  function showCard(q){
+    answers.innerHTML = "";
+    qText.textContent = q.prompt || "";
+    cardType.textContent = (q.type === "choice") ? "С выбором" : "С вводом";
+    miniHint.textContent = (q.type === "choice")
+      ? "Выбери правильный вариант."
+      : "Введи ответ и нажми «Проверить» или Enter.";
+
+    cardBack.style.display="flex";
+    cardBack.setAttribute("aria-hidden","false");
+    btnNext.disabled = true;
+    startTimer();
+
+    if(q.type === "choice"){
+      (q.options || []).forEach((opt, i)=>{
+        const b = document.createElement("div");
+        b.className = "pillBtn";
+        b.textContent = opt || ("Вариант " + (i+1));
+        b.onclick = ()=>{
+          const ok = (i === Number(q.correctIndex||0));
+          resolveAnswer(ok, false);
+        };
+        answers.appendChild(b);
+      });
+    } else {
+      const wrap = document.createElement("div");
+      wrap.className = "inputRow";
+
+      const inp = document.createElement("input");
+      inp.className = "inp";
+      inp.type = "text";
+      inp.placeholder = "Введите ответ…";
+
+      const btn = document.createElement("button");
+      btn.className = "btn primary";
+      btn.type = "button";
+      btn.textContent = "Проверить";
+
+      function check(){
+        const v = normStr(inp.value);
+        if(!v) return;
+        const acc = (q.accepts || []).map(normStr).filter(Boolean);
+        resolveAnswer(acc.includes(v), false);
+      }
+
+      btn.onclick = check;
+      inp.addEventListener("keydown",(e)=>{ if(e.key==="Enter") check(); });
+
+      wrap.appendChild(inp);
+      wrap.appendChild(btn);
+      answers.appendChild(wrap);
+    }
+  }
+
+  function hideCard(){
+    stopTimer();
+    cardBack.style.display="none";
+    cardBack.setAttribute("aria-hidden","true");
+  }
+
+  btnNoClose.onclick = () => {
+    hint.textContent = "Сначала ответь на вопрос 🙂";
+  };
+
+  function spawnBlock(i){
+    const b = createBlockEl(i, blockW);
+
+    let h = cssBlockH;
+    if(b.kind==="img"){
+      // для картинок берём высоту по пропорции после загрузки
+      // (если не успело — будет корректировано позже)
+      h = 90;
+      b.el.onload = ()=>{
+        const ratio = (b.el.naturalHeight||90) / Math.max(1,(b.el.naturalWidth||blockW));
+        const realH = Math.round(blockW * ratio);
+        b.el.style.height = realH + "px";
+        if(falling && falling.el === b.el){
+          falling.h = realH;
+          falling.targetY = baseY() - stackHeight() - realH + overlap;
+        }
+        placeStackInstant();
+      };
+    } else {
+      b.el.style.height = h + "px";
+    }
+
+    const yStart = -h - 60;
+    const targetY = baseY() - stackHeight() - h + overlap;
+
+    falling = {
+      el: b.el,
+      y: yStart,
+      targetY,
+      vel: 0,
+      h,
+      state: "fall",
+      springT: 0,
+      idx: i
+    };
+    b.el.style.top = yStart + "px";
+  }
+
+  function scorchAndVanish(){
+    if(!falling) return;
+    const el = falling.el;
+    el.classList.add("burning");
+
+    const c = towerCenter();
+    const y = c.yTop + clamp(falling.y + falling.h/2, 80, c.h-60);
+    makeSparks(c.x, y, 18);
+
+    el.style.transition = "opacity .35s ease, transform .35s ease, filter .35s ease";
+    el.style.opacity = "0";
+    el.style.transform = "translateX(-50%) scale(1.02)";
+    setTimeout(()=>{ el.remove(); }, 380);
+
+    falling = null;
+  }
+
+  function landWithSpring(){
+    if(!falling) return;
+    falling.state = "spring";
+    falling.springT = 0;
+
+    // искры на приземлении
+    const c = towerCenter();
+    const y = c.yTop + clamp(falling.targetY + falling.h - 18, 90, c.h-50);
+    makeSparks(c.x, y, 12);
+  }
+
+  function finalizeLand(){
+    if(!falling) return;
+    const item = { el: falling.el, h: falling.h, y: falling.targetY };
+    stack.push(item);
+    falling = null;
+    placeStackInstant();
+    btnNext.disabled = false;
+
+    if(qIndex >= 9){
+      hint.textContent = "Готово! Нажми «Далее», чтобы увидеть результат.";
+    } else {
+      hint.textContent = "Нажми «Далее», чтобы вызвать следующий блок.";
+    }
+  }
+
+  function resolveAnswer(ok, fromTimer){
+    hideCard();
+
+    if(!falling || falling.state !== "waitAnswer"){
+      // защита от двойных кликов
+      return;
+    }
+
+    if(ok){
+      correct++;
+      score += 100;
+      beep("ok");
+
+      const c = towerCenter();
+      floatPlus(c.x, c.yTop + clamp(falling.targetY + 14, 90, c.h-120), "+100");
+
+      hint.textContent = "Верно ✅ Блок закрепился! Нажми «Далее».";
+      landWithSpring();
+    } else {
+      wrong++;
+      beep("bad");
+
+      hint.textContent = fromTimer
+        ? "Время вышло ⏱ Блок сгорел. Нажми «Далее»."
+        : "Неверно ❌ Блок сгорел. Нажми «Далее».";
+      scorchAndVanish();
+      btnNext.disabled = false;
+    }
+
+    updateTopUI();
+  }
+
+  function finishGame(){
+    btnNext.disabled = true;
+    finCorrect.textContent = String(correct);
+    finWrong.textContent = String(wrong);
+    finScore.textContent = String(score);
+    finHeight.textContent = String(stack.length);
+
+    if(correct === 9){
+      finText.textContent = "Идеально! Ты собрал(а) всю башню без ошибок 🔥";
+    } else if(correct >= 6){
+      finText.textContent = "Очень круто! Башня высокая. Попробуй ещё раз и добери до 9 💚";
+    } else {
+      finText.textContent = "Хорошее начало! Попробуй ещё раз — и башня станет выше 😊";
+    }
+
+    finish.style.display = "flex";
+  }
+
+  btnRestart.onclick = ()=>{
+    finish.style.display = "none";
+    stack.forEach(x=>x.el.remove());
+    stack = [];
+    if(falling?.el) falling.el.remove();
+    falling = null;
+
+    qIndex = 0;
+    correct = 0;
+    wrong = 0;
+    score = 0;
+
+    updateTopUI();
+    hint.textContent = "Первый блок уже летит…";
+    btnNext.disabled = true;
+
+    setTimeout(()=> spawnNext(), 320);
+  };
+
+  btnNext.onclick = ()=>{
+    if(falling) return;
+    if(qIndex >= 9){
+      finishGame();
+      return;
+    }
+    spawnNext();
+  };
+
+  function spawnNext(){
+    if(qIndex >= 9){
+      finishGame();
+      return;
+    }
+
+    spawnBlock(qIndex);
+    hint.textContent = "Ответь на вопрос, чтобы блок закрепился.";
+    updateTopUI();
+
+    // карточка появляется чуть позже, но блок уже летит (и первый блок стартует быстро)
+    setTimeout(()=>{
+      if(!falling) return;
+      falling.state = "waitAnswer";
+      showCard(questions[qIndex]);
+      qIndex++;
+      updateTopUI();
+    }, 260);
+  }
+
+  // первый блок — быстро
+  updateTopUI();
+  setTimeout(()=> spawnNext(), 320);
+
+  function loop(){
+    if(falling){
+      if(falling.state === "fall"){
+        falling.vel += 0.55; // скорость падения "как норм"
+        falling.y += falling.vel;
+        if(falling.y >= falling.targetY){
+          falling.y = falling.targetY;
+          falling.vel = 0;
+          falling.state = "waitAnswer";
+          // карточка покажется по таймеру spawnNext()
+        }
+        falling.el.style.top = falling.y + "px";
+      }
+      else if(falling.state === "spring"){
+        falling.springT++;
+        const t = Math.min(1, falling.springT/18);
+        const amp = 10;
+        const offset = Math.sin(t*Math.PI) * amp; // пружинка
+        falling.el.style.top = (falling.targetY + offset) + "px";
+
+        if(falling.springT >= 18){
+          falling.el.style.top = falling.targetY + "px";
+          finalizeLand();
+        }
+      }
+    }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+}
+
+run();
+<\/script>
+</body>
+</html>`;
+  }
+
+  function buildPackedIframe(cfg){
+    const srcdoc = escapeAttr(buildGameSrcdoc(cfg));
+    return `<iframe srcdoc="${srcdoc}" style="width:100%;height:720px;border:0;border-radius:18px;overflow:hidden;background:transparent" allow="autoplay; fullscreen" allowfullscreen loading="lazy"></iframe>`;
+  }
+
+  // ===================== EDITOR =====================
+  const Editor = {
+    title: "Башня знаний",
+    bgDataUrl: "",
+    timer: { enabled:false, seconds: 30 },
+    useImages: false,
+    questions: [],
+    draft: null,
+    editingId: null
+  };
+
+  function setCountPill(){
+    $("pillCount").textContent = Editor.questions.length + " / 9";
+    $("btnAddQ").disabled = (Editor.questions.length >= 9);
+  }
+
+  function qSummary(q){
+    const p = String(q.prompt || "").trim();
+    const short = p.length > 50 ? p.slice(0,50)+"…" : p;
+    const type = (q.type==="choice") ? "Выбор" : "Ввод";
+    return { title: short || "(пусто)", sub: type };
+  }
+
+  function renderList(){
+    const list = $("qList");
+    list.innerHTML = "";
+    setCountPill();
+
+    if(Editor.questions.length === 0){
+      const d = document.createElement("div");
+      d.className = "muted";
+      d.textContent = "Пока нет вопросов. Нажмите «Добавить» и заполните 9 вопросов.";
+      list.appendChild(d);
+      return;
+    }
+
+    Editor.questions.forEach((q,i)=>{
+      const wrap = document.createElement("div");
+      wrap.className = "q-item";
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      const s = qSummary(q);
+      meta.innerHTML = `<div class="t">${escapeHtml(String(i+1)+". "+s.title)}</div>
+                        <div class="s">${escapeHtml(s.sub)}</div>`;
+
+      const btns = document.createElement("div");
+      btns.style.display="flex";
+      btns.style.gap="8px";
+      btns.style.flexWrap="wrap";
+      btns.style.justifyContent="flex-end";
+
+      const bPrev = document.createElement("button");
+      bPrev.className = "btn small";
+      bPrev.type="button";
+      bPrev.textContent = "👁";
+      bPrev.title = "Показать в превью (первым вопросом)";
+      bPrev.onclick = ()=>{
+        Editor.draft = deepClone(q);
+        updatePreview(true);
+        toast("Показано в превью");
+      };
+
+      const bEdit = document.createElement("button");
+      bEdit.className = "btn small";
+      bEdit.type="button";
+      bEdit.textContent = "✏️";
+      bEdit.title = "Редактировать";
+      bEdit.onclick = ()=> openModal(q);
+
+      const bDel = document.createElement("button");
+      bDel.className = "btn small danger";
+      bDel.type="button";
+      bDel.textContent = "🗑";
+      bDel.title = "Удалить";
+      bDel.onclick = ()=>{
+        Editor.questions = Editor.questions.filter(x=>x.id!==q.id);
+        renderList();
+        updatePreview(false);
+        toast("Удалено");
+      };
+
+      btns.appendChild(bPrev);
+      btns.appendChild(bEdit);
+      btns.appendChild(bDel);
+
+      wrap.appendChild(meta);
+      wrap.appendChild(btns);
+      list.appendChild(wrap);
+    });
+  }
+
+  function showModal(){
+    $("modalBackdrop").style.display = "flex";
+    $("modalBackdrop").setAttribute("aria-hidden","false");
+  }
+  function hideModal(){
+    $("modalBackdrop").style.display = "none";
+    $("modalBackdrop").setAttribute("aria-hidden","true");
+  }
+
+  function syncModalType(){
+    const t = $("selType").value;
+    $("choiceWrap").style.display = (t==="choice") ? "block" : "none";
+    $("textWrap").style.display = (t==="text") ? "block" : "none";
+  }
+
+  function renderChoiceUI(){
+    const list = $("choiceList");
+    list.innerHTML = "";
+    const q = Editor.draft;
+    if(!q) return;
+
+    q.options = q.options || ["",""];
+    if(typeof q.correctIndex !== "number") q.correctIndex = 0;
+
+    q.options.forEach((val, idx)=>{
+      const row = document.createElement("div");
+      row.className = "answerRow";
+
+      const r = document.createElement("input");
+      r.className="radio";
+      r.type="radio";
+      r.name="correctChoice";
+      r.checked = (q.correctIndex === idx);
+      r.onchange = ()=>{ q.correctIndex = idx; renderChoiceUI(); };
+
+      const inp = document.createElement("input");
+      inp.type="text";
+      inp.value = val || "";
+      inp.placeholder = (idx === q.correctIndex) ? "✅ Верный ответ" : ("Вариант " + (idx+1));
+      inp.oninput = ()=>{ q.options[idx] = inp.value; };
+
+      const del = document.createElement("button");
+      del.className="btn small danger";
+      del.type="button";
+      del.textContent="✖";
+      del.onclick = ()=>{
+        q.options.splice(idx,1);
+        if(q.options.length < 2) q.options.push("");
+        if(q.correctIndex >= q.options.length) q.correctIndex = q.options.length-1;
+        renderChoiceUI();
+      };
+
+      row.appendChild(r);
+      row.appendChild(inp);
+      row.appendChild(del);
+      list.appendChild(row);
+    });
+  }
+
+  function renderTextUI(){
+    const list = $("textList");
+    list.innerHTML = "";
+    const q = Editor.draft;
+    if(!q) return;
+
+    q.accepts = q.accepts || [""];
+
+    q.accepts.forEach((val, idx)=>{
+      const row = document.createElement("div");
+      row.className = "answerRow";
+
+      const inp = document.createElement("input");
+      inp.type="text";
+      inp.value = val || "";
+      inp.placeholder = (idx===0) ? "✅ Верный ответ" : ("Верный вариант " + (idx+1));
+      inp.oninput = ()=>{ q.accepts[idx] = inp.value; };
+
+      const del = document.createElement("button");
+      del.className="btn small danger";
+      del.type="button";
+      del.textContent="✖";
+      del.onclick = ()=>{
+        q.accepts.splice(idx,1);
+        if(q.accepts.length === 0) q.accepts.push("");
+        renderTextUI();
+      };
+
+      row.appendChild(inp);
+      row.appendChild(del);
+      list.appendChild(row);
+    });
+  }
+
+  function openModal(existing=null){
+    if(existing){
+      Editor.draft = deepClone(existing);
+      Editor.editingId = existing.id;
+      $("modalTitle").textContent = "Редактировать вопрос";
+    } else {
+      Editor.draft = {
+        id: uid(),
+        type: "choice",
+        prompt: "",
+        options: ["",""],
+        correctIndex: 0
+      };
+      Editor.editingId = null;
+      $("modalTitle").textContent = "Добавить вопрос";
+    }
+
+    $("selType").value = Editor.draft.type || "choice";
+    $("inpPrompt").value = Editor.draft.prompt || "";
+    syncModalType();
+    if($("selType").value === "choice") renderChoiceUI();
+    else renderTextUI();
+
+    showModal();
+    setTimeout(()=>$("inpPrompt").focus(), 40);
+  }
+
+  function getDraftFromModal(){
+    const q = Editor.draft;
+    if(!q) return null;
+
+    q.type = $("selType").value;
+    q.prompt = $("inpPrompt").value || "";
+
+    if(q.type === "choice"){
+      q.options = (q.options || []).map(x=>String(x||""));
+      q.correctIndex = Number.isFinite(q.correctIndex) ? q.correctIndex : 0;
+    } else {
+      q.accepts = (q.accepts || [""]).map(x=>String(x||""));
+    }
+    return q;
+  }
+
+  function validateQuestion(q){
+    if(!q) return "Пустой вопрос";
+    if(!(q.prompt||"").trim()) return "Введите текст вопроса";
+
+    if(q.type === "choice"){
+      const opts = (q.options||[]).map(x=>String(x||"").trim()).filter(Boolean);
+      if(opts.length < 2) return "Нужно минимум 2 варианта ответа";
+      q.options = opts;
+      if(!Number.isFinite(q.correctIndex)) q.correctIndex = 0;
+      if(q.correctIndex >= q.options.length) q.correctIndex = 0;
+      return "";
+    }
+
+    const acc = (q.accepts||[]).map(x=>String(x||"").trim()).filter(Boolean);
+    if(acc.length === 0) return "Добавьте хотя бы один верный ответ";
+    q.accepts = acc;
+    return "";
+  }
+
+  function buildPayload(previewWithDraft){
+    // вопросы
+    let questions = Editor.questions.map(q=>{
+      if(q.type === "choice"){
+        return { type:"choice", prompt:q.prompt||"", options:(q.options||[]).slice(), correctIndex:Number(q.correctIndex||0) };
+      }
+      return { type:"text", prompt:q.prompt||"", accepts:(q.accepts||[]).slice() };
+    });
+
+    // если показываем “черновик” в превью — подменим первый вопрос
+    if(previewWithDraft && Editor.draft){
+      const d = deepClone(Editor.draft);
+      questions = questions.slice();
+      if(d.type === "choice"){
+        const mapped = { type:"choice", prompt:d.prompt||"", options:(d.options||[]).slice(), correctIndex:Number(d.correctIndex||0) };
+        if(questions.length === 0) questions.push(mapped);
+        else questions[0] = mapped;
+      } else {
+        const mapped = { type:"text", prompt:d.prompt||"", accepts:(d.accepts||[]).slice() };
+        if(questions.length === 0) questions.push(mapped);
+        else questions[0] = mapped;
+      }
+    }
+
+    while(questions.length < 9){
+      questions.push({ type:"choice", prompt:"(пустой вопрос)", options:["OK","..."], correctIndex:0 });
+    }
+    questions.length = 9;
+
+    return {
+      title: Editor.title || "Башня знаний",
+      bgDataUrl: Editor.bgDataUrl || "",
+      timer: { enabled: !!Editor.timer.enabled, seconds: Number(Editor.timer.seconds || 30) },
+      useImages: !!Editor.useImages,
+      blockUrls: blockUrls,
+      questions
+    };
+  }
+
+  function updatePreview(previewWithDraft){
+    const payload = buildPayload(previewWithDraft);
+    $("livePreview").srcdoc = buildGameSrcdoc(payload);
+  }
+
+  // ==== bindings ====
+  $("inpTitle").addEventListener("input", ()=>{
+    Editor.title = $("inpTitle").value || "Башня знаний";
+    updatePreview(false);
+  });
+
+  $("fileBg").addEventListener("change", async (e)=>{
+    const f = e.target.files?.[0];
+    if(!f) return;
+    Editor.bgDataUrl = await fileToDataUrl(f);
+    toast("Фон загружен");
+    updatePreview(false);
+  });
+
+  $("chkUseImages").addEventListener("change", ()=>{
+    Editor.useImages = $("chkUseImages").checked;
+    updatePreview(false);
+  });
+
+  $("chkTimer").addEventListener("change", ()=>{
+    Editor.timer.enabled = $("chkTimer").checked;
+    updatePreview(false);
+  });
+
+  $("inpSeconds").addEventListener("input", ()=>{
+    Editor.timer.seconds = Number($("inpSeconds").value || 30);
+    updatePreview(false);
+  });
+
+  $("btnAddQ").addEventListener("click", ()=>{
+    if(Editor.questions.length >= 9){
+      toast("Вопросов уже 9 🙂");
+      return;
+    }
+    openModal(null);
+  });
+
+  $("btnClearQs").addEventListener("click", ()=>{
+    Editor.questions = [];
+    renderList();
+    updatePreview(false);
+    toast("Очищено");
+  });
+
+  $("btnCloseModal").addEventListener("click", ()=>{
+    Editor.draft=null; Editor.editingId=null; hideModal();
+  });
+
+  $("modalBackdrop").addEventListener("click", (e)=>{
+    if(e.target === $("modalBackdrop")){
+      Editor.draft=null; Editor.editingId=null; hideModal();
+    }
+  });
+
+  $("selType").addEventListener("change", ()=>{
+    const q = Editor.draft;
+    if(!q) return;
+    q.type = $("selType").value;
+    syncModalType();
+    if(q.type === "choice"){
+      q.options = q.options || ["",""];
+      if(typeof q.correctIndex !== "number") q.correctIndex = 0;
+      renderChoiceUI();
+    } else {
+      q.accepts = q.accepts || [""];
+      renderTextUI();
+    }
+  });
+
+  $("btnAddChoice").addEventListener("click", ()=>{
+    const q = Editor.draft;
+    if(!q) return;
+    q.options = q.options || ["",""];
+    q.options.push("");
+    renderChoiceUI();
+  });
+
+  $("btnAddText").addEventListener("click", ()=>{
+    const q = Editor.draft;
+    if(!q) return;
+    q.accepts = q.accepts || [""];
+    q.accepts.push("");
+    renderTextUI();
+  });
+
+  $("btnPreviewDraft").addEventListener("click", ()=>{
+    getDraftFromModal();
+    updatePreview(true);
+    toast("Черновик показан в превью");
+  });
+
+  $("btnSaveQ").addEventListener("click", ()=>{
+    const q = getDraftFromModal();
+    const err = validateQuestion(q);
+    if(err){ toast(err); return; }
+
+    if(Editor.editingId){
+      const idx = Editor.questions.findIndex(x=>x.id === Editor.editingId);
+      if(idx >= 0){
+        q.id = Editor.editingId;
+        Editor.questions[idx] = q;
+        toast("Вопрос обновлён");
+      } else {
+        Editor.questions.push(q);
+        toast("Вопрос добавлен");
+      }
+    } else {
+      Editor.questions.push(q);
+      toast("Вопрос добавлен");
+    }
+
+    Editor.draft=null; Editor.editingId=null;
+    hideModal();
+    renderList();
+    updatePreview(false);
+  });
+
+  $("btnCopyCode").addEventListener("click", async ()=>{
+    if(Editor.questions.length !== 9){
+      toast("Нужно ровно 9 вопросов (сейчас: " + Editor.questions.length + ")");
+      return;
+    }
+    const payload = buildPayload(false);
+    const iframeCode = buildPackedIframe(payload);
+    const ok = await copyToClipboard(iframeCode);
+    toast(ok ? "iframe скопирован ✅" : "Не удалось скопировать");
+  });
+
+  // init
+  Editor.title = $("inpTitle").value || "Башня знаний";
+  Editor.timer.enabled = $("chkTimer").checked;
+  Editor.timer.seconds = Number($("inpSeconds").value || 30);
+  Editor.useImages = $("chkUseImages").checked;
+
+  renderList();
+  updatePreview(false);
+})();
+</script>
+</body>
+</html>
