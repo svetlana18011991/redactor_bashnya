@@ -21,8 +21,6 @@
         .q-item { background: rgba(0,0,0,0.3); border: 1px solid var(--gold-dim); padding: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         .preview-area { flex: 1; background: #000; display: flex; flex-direction: column; }
         iframe { width: 100%; height: 100%; border: none; background: #000; }
-        
-        /* MODAL */
         .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 100; }
         .modal { background: var(--panel); border: 2px solid var(--gold); width: 500px; max-height: 90vh; overflow-y: auto; padding: 25px; border-radius: 10px; }
         .media-row { display: flex; gap: 10px; align-items: center; margin-top: 5px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 4px;}
@@ -115,7 +113,7 @@
 </div>
 
 <script>
-    let qs = [], editIdx = null, assets = { bg: null, music: null }, temp = {};
+    let qs=[], editIdx=null, assets={bg:null,music:null}, temp={};
 
     function handleFile(k, i) { 
         if(!i.files[0]) return; 
@@ -176,23 +174,19 @@
         qs.forEach((q,i)=>{ const d=document.createElement('div'); d.className='q-item'; d.innerHTML=`<div onclick="openModal(qs[${i}],${i})" style="flex:1"><b>${i+1}.</b> ${q.q}</div><button class="btn btn-icon" onclick="deleteQ(${i})">🗑</button>`; l.appendChild(d); });
     }
 
-    // BASE64 GENERATOR (BULLETPROOF)
     async function getBase64Code() {
         const resp = await fetch('./index.html');
+        if(!resp.ok) return null;
         let html = await resp.text();
         const cfg = { qs: qs, bg: assets.bg, music: assets.music, shuffle: document.getElementById('shuffleMode').value==='true' };
-        
-        // Вставляем конфиг
         html = html.replace('<head>', `<head><script>window.GAME_CFG=${JSON.stringify(cfg)};<\/script>`);
-        
-        // Кодируем в Base64 для src
         return "data:text/html;charset=utf-8;base64," + btoa(unescape(encodeURIComponent(html)));
     }
 
     async function updatePreview() {
         if(!qs.length && !assets.bg) return;
         const url = await getBase64Code();
-        document.getElementById('gameFrame').src = url;
+        if(url) document.getElementById('gameFrame').src = url;
     }
 
     async function copyCode() {
