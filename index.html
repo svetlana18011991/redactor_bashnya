@@ -89,10 +89,8 @@ window.addEventListener('resize', resize); resize();
 
 // --- ASSETS ---
 const ASSETS = { b: [], bg: null };
-// Безопасная загрузка (если src == null, ничего не делаем или грузим дефолт)
 const loadImg = src => new Promise(r => { 
     if(!src) { r(null); return; }
-    // Если это не base64, добавляем путь к репозиторию
     const fullSrc = src.startsWith('data:') ? src : REPO + src;
     const i=new Image(); 
     i.onload=()=>r(i); 
@@ -101,7 +99,6 @@ const loadImg = src => new Promise(r => {
 });
 
 async function init() {
-    // Если фона нет в настройках, берем 1.png из репозитория
     ASSETS.bg = await loadImg(DATA.bg || "1.png");
     for(let f of IMGS) {
         const img = await loadImg(f);
@@ -119,7 +116,7 @@ init();
 
 // --- STATE ---
 let state = { run: false, tower: [], curr: null, score: 0, qIdx: 0, camY: 0, particles: [], rings: [], smokes: [] };
-let timerInt = null; // ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ (Fix ReferenceError)
+let timerInt = null;
 
 function startGame() {
     document.getElementById('start').classList.add('hide');
@@ -130,7 +127,6 @@ function startGame() {
 
 function spawn() {
     if(state.tower.length >= 9) return end(true);
-    // Если картинки не прогрузились, используем заглушку, чтобы не было ошибки undefined
     if(ASSETS.b.length === 0) { console.error("No block images!"); return; }
     
     const img = ASSETS.b[state.tower.length % ASSETS.b.length];
@@ -149,7 +145,7 @@ function updHUD() {
 }
 
 function ask() {
-    if(!DATA.qs || !DATA.qs.length) return; // Защита
+    if(!DATA.qs || !DATA.qs.length) return;
     state.curr.wait = true;
     const q = DATA.qs[state.qIdx % DATA.qs.length];
     
@@ -215,7 +211,7 @@ function answer(win) {
         m.innerText = "ОШИБКА! Блок сгорает..."; m.style.color = "var(--bad)";
         setTimeout(()=>{
             document.getElementById('overlay').style.display='none';
-            if(state.curr) state.curr.charring = true;
+            if(state.curr) state.curr.charring = true; // Start charring effect
         }, 1500);
     }
     state.qIdx++;
@@ -262,15 +258,19 @@ function loop() {
         const c = state.curr;
         
         if(c.charring) {
-            c.char += 0.02;
+            c.char += 0.015; // Slower charring for better effect
             if(c.char >= 1) boom(c.x+c.w/2, c.y+c.h/2);
         } else if(!c.wait) {
             if(c.drop) {
-                let land = groundY;
-                if(state.tower.length) land = state.tower[state.tower.length-1].y - c.h + 5; 
+                // FIX: Calculate landing based on BOTTOM of the falling block
+                let targetBottomY = groundY; 
+                if(state.tower.length > 0) targetBottomY = state.tower[state.tower.length-1].y + 5; // 5px overlap
+                
+                let landY = targetBottomY - c.h; // Target Y for the top of the block
+
                 c.y += 15;
-                if(c.y >= land) {
-                    c.y = land;
+                if(c.y >= landY) {
+                    c.y = landY;
                     state.tower.push(c);
                     state.curr = null;
                     updHUD();
@@ -286,6 +286,7 @@ function loop() {
 
         if(state.curr) {
             ctx.drawImage(c.img, Math.round(c.x), Math.round(c.y), c.w, c.h);
+            // CHARRING EFFECT (Original style)
             if(c.char > 0) {
                 ctx.globalCompositeOperation = "source-atop";
                 ctx.fillStyle = `rgba(0,0,0,${c.char})`;
@@ -319,4 +320,3 @@ function loop() {
 }
 </script>
 </body>
-</html>
