@@ -1,1 +1,108 @@
 
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактор Башни</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f7f6; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h1 { text-align: center; color: #333; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input[type="text"], input[type="number"] { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;}
+        .q-block { background: #fafafa; border-left: 4px solid #2196F3; padding: 15px; margin-bottom: 15px; position: relative; }
+        .btn { padding: 10px 15px; border: none; cursor: pointer; border-radius: 4px; color: white; font-weight: bold; margin-top: 10px;}
+        .btn-add { background: #4CAF50; width: 100%; }
+        .btn-del { background: #f44336; position: absolute; top: 10px; right: 10px; }
+        .btn-gen { background: #673AB7; width: 100%; font-size: 18px; padding: 15px; }
+        textarea { width: 100%; height: 100px; margin-top: 10px; font-family: monospace; }
+    </style>
+</head>
+<body>
+
+    <h1>Конструктор Башни</h1>
+
+    <div class="card">
+        <h2>1. Настройки</h2>
+        <label><input type="checkbox" id="timerToggle" onchange="toggleTimer()"> Включить таймер</label>
+        <div id="timerBox" style="display:none; margin-top:10px; padding-left:20px;">
+            <label>Секунд на вопрос: <input type="number" id="timerSec" value="15" style="width:80px;"></label>
+        </div>
+    </div>
+
+    <div id="qList"></div>
+    <button class="btn btn-add" onclick="addQuestion()">+ Добавить вопрос</button>
+
+    <div class="card">
+        <h2>2. Получить код</h2>
+        <button class="btn btn-gen" onclick="generate()">Сгенерировать IFRAME</button>
+        <p>Код для вставки в Genially:</p>
+        <textarea id="result" readonly></textarea>
+    </div>
+
+<script>
+    // ВАЖНО: Ссылка на твой файл index.html
+    const GAME_URL = "https://svetlana18011991.github.io/redactor_bashnya/index.html";
+
+    function toggleTimer() {
+        document.getElementById('timerBox').style.display = 
+            document.getElementById('timerToggle').checked ? 'block' : 'none';
+    }
+
+    function addQuestion() {
+        const div = document.createElement('div');
+        div.className = 'q-block';
+        div.innerHTML = `
+            <button class="btn btn-del" onclick="this.parentElement.remove()">Удалить</button>
+            <label>Вопрос:</label>
+            <input type="text" class="q-text" placeholder="Вопрос">
+            <label>Правильный ответ:</label>
+            <input type="text" class="q-right" placeholder="Правильно">
+            <label>Неправильные ответы (через запятую):</label>
+            <input type="text" class="q-wrong" placeholder="Ответ 1, Ответ 2, Ответ 3">
+        `;
+        document.getElementById('qList').appendChild(div);
+    }
+    addQuestion();
+
+    function generate() {
+        const blocks = document.querySelectorAll('.q-block');
+        const data = {
+            timer: document.getElementById('timerToggle').checked,
+            sec: parseInt(document.getElementById('timerSec').value) || 15,
+            qs: []
+        };
+
+        blocks.forEach(b => {
+            const q = b.querySelector('.q-text').value.trim();
+            const right = b.querySelector('.q-right').value.trim();
+            const wrongStr = b.querySelector('.q-wrong').value.trim();
+
+            if(q && right) {
+                let opts = [right];
+                if(wrongStr) opts = opts.concat(wrongStr.split(',').map(s=>s.trim()));
+                // Перемешиваем
+                opts.sort(() => Math.random() - 0.5);
+                
+                data.qs.push({
+                    type: "choice", 
+                    q: q, 
+                    options: opts, 
+                    answer: right
+                });
+            }
+        });
+
+        if(data.qs.length === 0) { alert("Добавьте вопросы!"); return; }
+
+        const json = JSON.stringify(data);
+        const encoded = btoa(unescape(encodeURIComponent(json)));
+        const finalUrl = GAME_URL + "?data=" + encoded;
+        
+        document.getElementById('result').value = 
+            `<iframe src="${finalUrl}" width="100%" height="600" style="border:none;" allowfullscreen></iframe>`;
+    }
+</script>
+</body>
+</html>
