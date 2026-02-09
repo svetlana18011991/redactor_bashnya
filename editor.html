@@ -1,108 +1,445 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Редактор Башни</title>
+    <title>Golden Tower Editor</title>
     <style>
-        body { font-family: sans-serif; background: #f4f7f6; padding: 20px; max-width: 800px; margin: 0 auto; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        h1 { text-align: center; color: #333; }
-        label { display: block; margin-top: 10px; font-weight: bold; }
-        input[type="text"], input[type="number"] { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;}
-        .q-block { background: #fafafa; border-left: 4px solid #2196F3; padding: 15px; margin-bottom: 15px; position: relative; }
-        .btn { padding: 10px 15px; border: none; cursor: pointer; border-radius: 4px; color: white; font-weight: bold; margin-top: 10px;}
-        .btn-add { background: #4CAF50; width: 100%; }
-        .btn-del { background: #f44336; position: absolute; top: 10px; right: 10px; }
-        .btn-gen { background: #673AB7; width: 100%; font-size: 18px; padding: 15px; }
-        textarea { width: 100%; height: 100px; margin-top: 10px; font-family: monospace; }
+        :root {
+            --bg-color: #051024;
+            --panel-bg: #0b1a36;
+            --gold: #FFD700;
+            --gold-dim: #b89b00;
+            --text: #ffffff;
+        }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        /* ЛЕВАЯ ПАНЕЛЬ */
+        .sidebar {
+            width: 450px;
+            background: var(--panel-bg);
+            border-right: 2px solid var(--gold);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+        }
+        
+        h1, h2, h3 { color: var(--gold); margin-top: 0; text-transform: uppercase; letter-spacing: 1px; }
+        h1 { font-size: 22px; text-align: center; border-bottom: 1px solid var(--gold-dim); padding-bottom: 15px; }
+
+        label { display: block; margin-top: 10px; font-size: 14px; color: var(--gold); }
+        input, select, textarea {
+            width: 100%;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--gold-dim);
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            box-sizing: border-box;
+            margin-top: 5px;
+        }
+        input:focus { outline: none; border-color: var(--gold); background: rgba(255,255,255,0.2); }
+
+        /* СПИСОК ВОПРОСОВ */
+        #qList { flex: 1; overflow-y: auto; margin: 20px 0; border-top: 1px solid rgba(255,215,0,0.2); padding-top: 10px; }
+        .q-item {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--gold-dim);
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .q-item:hover { background: rgba(255,215,0,0.1); }
+        .q-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 250px; }
+        .q-badges { display: flex; gap: 5px; font-size: 10px; }
+        .badge { padding: 2px 5px; border-radius: 4px; background: #333; color: #aaa; }
+        
+        /* КНОПКИ */
+        .btn {
+            background: linear-gradient(45deg, var(--gold-dim), var(--gold));
+            color: #000;
+            border: none;
+            padding: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            text-transform: uppercase;
+            transition: 0.2s;
+            margin-top: 10px;
+            width: 100%;
+        }
+        .btn:hover { filter: brightness(1.2); box-shadow: 0 0 10px var(--gold); }
+        .btn-small { width: auto; padding: 5px 10px; font-size: 12px; }
+        .btn-del { background: #ff4444; color: white; }
+
+        /* ПРАВАЯ ПАНЕЛЬ (ПРЕВЬЮ) */
+        .preview-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #000;
+            position: relative;
+        }
+        iframe { width: 100%; height: 100%; border: none; }
+        .preview-label {
+            position: absolute; top: 10px; right: 10px;
+            background: var(--gold); color: black;
+            padding: 5px 10px; font-weight: bold; border-radius: 4px;
+            z-index: 10; opacity: 0.7; pointer-events: none;
+        }
+
+        /* МОДАЛЬНОЕ ОКНО */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none; justify-content: center; align-items: center; z-index: 100;
+        }
+        .modal {
+            background: var(--panel-bg);
+            border: 2px solid var(--gold);
+            width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 30px var(--gold-dim);
+        }
+        .media-btns { display: flex; gap: 10px; margin-top: 5px; }
+        .icon-btn { 
+            background: rgba(255,255,255,0.1); border: 1px solid var(--gold-dim); 
+            color: var(--gold); cursor: pointer; padding: 5px 10px; border-radius: 4px;
+        }
+        .icon-btn.active { background: var(--gold); color: #000; }
+        
+        .answer-row { display: flex; gap: 5px; align-items: center; margin-bottom: 5px; }
+        .correct-radio { accent-color: var(--gold); transform: scale(1.5); cursor: pointer; }
+
+        /* СКРОЛЛБАР */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 4px; }
     </style>
 </head>
 <body>
 
-    <h1>Конструктор Башни</h1>
+<div class="sidebar">
+    <h1>🏗 Редактор Башни</h1>
+    
+    <div>
+        <label>🖼 Фон игры (URL картинки):</label>
+        <input type="text" id="bgUrl" placeholder="Оставь пустым для стандарта или вставь ссылку" onchange="updatePreview()">
+        <small style="color: #aaa; font-size: 11px;">Рекомендую загрузить картинку на GitHub и вставить сюда ссылку.</small>
+    </div>
 
-    <div class="card">
-        <h2>1. Настройки</h2>
-        <label><input type="checkbox" id="timerToggle" onchange="toggleTimer()"> Включить таймер</label>
-        <div id="timerBox" style="display:none; margin-top:10px; padding-left:20px;">
-            <label>Секунд на вопрос: <input type="number" id="timerSec" value="15" style="width:80px;"></label>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+        <h3 style="margin:0">Вопросы (<span id="qCount">0</span>/9)</h3>
+        <button class="btn btn-small" onclick="openModal()">+ Добавить</button>
+    </div>
+
+    <div id="qList">
+        </div>
+
+    <div style="margin-top: auto;">
+        <button class="btn" onclick="copyCode()">📋 Скопировать код для Genially</button>
+    </div>
+</div>
+
+<div class="preview-area">
+    <div class="preview-label">LIVE PREVIEW</div>
+    <iframe id="gameFrame"></iframe>
+</div>
+
+<div class="modal-overlay" id="modal">
+    <div class="modal">
+        <h2>Настройка вопроса</h2>
+        
+        <label>Тип вопроса:</label>
+        <select id="mType" onchange="toggleAnsType()">
+            <option value="choice">Выбор ответа</option>
+            <option value="input">Ввод текста</option>
+        </select>
+
+        <label>Текст вопроса:</label>
+        <div style="display:flex; gap:5px;">
+            <input type="text" id="mText" placeholder="Введите вопрос...">
+            <button class="icon-btn" onclick="toggleMedia('img')" title="Добавить картинку">📷</button>
+            <button class="icon-btn" onclick="toggleMedia('audio')" title="Добавить звук">🎵</button>
+        </div>
+
+        <div id="mediaFields">
+            <div id="fieldImg" style="display:none;">
+                <label>Ссылка на картинку:</label>
+                <input type="text" id="mImg" placeholder="https://...">
+            </div>
+            <div id="fieldAudio" style="display:none;">
+                <label>Ссылка на музыку (.mp3):</label>
+                <input type="text" id="mAudio" placeholder="https://...">
+            </div>
+        </div>
+
+        <div style="margin: 15px 0; padding: 10px; border: 1px dashed var(--gold-dim); border-radius: 5px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label style="margin:0; color:white;">⏱ Таймер на этот вопрос</label>
+                <input type="checkbox" id="mTimerInfo" style="width:auto;" onchange="toggleTimerField()">
+            </div>
+            <div id="timerValBox" style="display:none; margin-top:5px;">
+                <input type="number" id="mSeconds" value="15" style="width:80px;"> секунд
+            </div>
+        </div>
+
+        <label>Варианты ответов:</label>
+        <div id="answersContainer"></div>
+        <button id="btnAddAns" class="btn btn-small" style="background:#444; color:#fff; border:1px solid #666;" onclick="addChoiceRow()">+ Вариант</button>
+
+        <div id="inputAnswerContainer" style="display:none;">
+            <label>Правильный ответ (текст):</label>
+            <input type="text" id="mCorrectText" placeholder="Например: 42">
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn" style="background:#444; color:white;" onclick="closeModal()">Отмена</button>
+            <button class="btn" onclick="saveQuestion()">Сохранить</button>
         </div>
     </div>
-
-    <div id="qList"></div>
-    <button class="btn btn-add" onclick="addQuestion()">+ Добавить вопрос</button>
-
-    <div class="card">
-        <h2>2. Получить код</h2>
-        <button class="btn btn-gen" onclick="generate()">Сгенерировать IFRAME</button>
-        <p>Код для вставки в Genially:</p>
-        <textarea id="result" readonly></textarea>
-    </div>
+</div>
 
 <script>
-    // ВАЖНО: Ссылка на твой файл index.html
+    // ССЫЛКА НА ФАЙЛ ИГРЫ (Обязательно проверь!)
     const GAME_URL = "https://svetlana18011991.github.io/redactor_bashnya/index.html";
 
-    function toggleTimer() {
-        document.getElementById('timerBox').style.display = 
-            document.getElementById('timerToggle').checked ? 'block' : 'none';
+    let questions = [];
+    let editingId = null;
+
+    // --- ЛОГИКА ИНТЕРФЕЙСА ---
+
+    function openModal(qData = null, index = null) {
+        document.getElementById('modal').style.display = 'flex';
+        
+        // Сброс полей
+        document.getElementById('mType').value = 'choice';
+        document.getElementById('mText').value = '';
+        document.getElementById('mImg').value = '';
+        document.getElementById('mAudio').value = '';
+        document.getElementById('mTimerInfo').checked = false;
+        document.getElementById('mSeconds').value = 15;
+        document.getElementById('mCorrectText').value = '';
+        
+        // Сброс медиа
+        document.getElementById('fieldImg').style.display = 'none';
+        document.getElementById('fieldAudio').style.display = 'none';
+        
+        // Очистка вариантов
+        const container = document.getElementById('answersContainer');
+        container.innerHTML = '';
+
+        if(qData) {
+            // Редактирование
+            editingId = index;
+            document.getElementById('mType').value = qData.type;
+            document.getElementById('mText').value = qData.q;
+            if(qData.img) { toggleMedia('img'); document.getElementById('mImg').value = qData.img; }
+            if(qData.audio) { toggleMedia('audio'); document.getElementById('mAudio').value = qData.audio; }
+            
+            if(qData.timer) {
+                document.getElementById('mTimerInfo').checked = true;
+                document.getElementById('mSeconds').value = qData.timer;
+            }
+
+            if(qData.type === 'choice') {
+                qData.options.forEach(opt => addChoiceRow(opt, opt === qData.answer));
+            } else {
+                document.getElementById('mCorrectText').value = qData.answer;
+            }
+        } else {
+            // Новый вопрос
+            editingId = null;
+            addChoiceRow('', true); // 1 верный
+            addChoiceRow('');       // 1 неверный
+        }
+        
+        toggleAnsType();
+        toggleTimerField();
     }
 
-    function addQuestion() {
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+
+    function toggleMedia(type) {
+        const field = document.getElementById(type === 'img' ? 'fieldImg' : 'fieldAudio');
+        field.style.display = field.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function toggleTimerField() {
+        const checked = document.getElementById('mTimerInfo').checked;
+        document.getElementById('timerValBox').style.display = checked ? 'block' : 'none';
+    }
+
+    function toggleAnsType() {
+        const type = document.getElementById('mType').value;
+        if(type === 'choice') {
+            document.getElementById('answersContainer').style.display = 'block';
+            document.getElementById('btnAddAns').style.display = 'inline-block';
+            document.getElementById('inputAnswerContainer').style.display = 'none';
+        } else {
+            document.getElementById('answersContainer').style.display = 'none';
+            document.getElementById('btnAddAns').style.display = 'none';
+            document.getElementById('inputAnswerContainer').style.display = 'block';
+        }
+    }
+
+    function addChoiceRow(val = '', isCorrect = false) {
         const div = document.createElement('div');
-        div.className = 'q-block';
+        div.className = 'answer-row';
         div.innerHTML = `
-            <button class="btn btn-del" onclick="this.parentElement.remove()">Удалить</button>
-            <label>Вопрос:</label>
-            <input type="text" class="q-text" placeholder="Вопрос">
-            <label>Правильный ответ:</label>
-            <input type="text" class="q-right" placeholder="Правильно">
-            <label>Неправильные ответы (через запятую):</label>
-            <input type="text" class="q-wrong" placeholder="Ответ 1, Ответ 2, Ответ 3">
+            <input type="radio" name="correctAns" class="correct-radio" ${isCorrect ? 'checked' : ''}>
+            <input type="text" class="ans-val" value="${val}" placeholder="Ответ">
+            <button class="btn btn-small btn-del" onclick="this.parentElement.remove()" style="width:30px;">×</button>
         `;
-        document.getElementById('qList').appendChild(div);
+        document.getElementById('answersContainer').appendChild(div);
     }
-    addQuestion();
 
-    function generate() {
-        const blocks = document.querySelectorAll('.q-block');
-        const data = {
-            timer: document.getElementById('timerToggle').checked,
-            sec: parseInt(document.getElementById('timerSec').value) || 15,
-            qs: []
+    function saveQuestion() {
+        const type = document.getElementById('mType').value;
+        const qText = document.getElementById('mText').value;
+        
+        if(!qText.trim()) { alert("Введите текст вопроса!"); return; }
+
+        const newQ = {
+            type: type,
+            q: qText,
+            img: document.getElementById('mImg').value,
+            audio: document.getElementById('mAudio').value,
+            timer: document.getElementById('mTimerInfo').checked ? parseInt(document.getElementById('mSeconds').value) : null
         };
 
-        blocks.forEach(b => {
-            const q = b.querySelector('.q-text').value.trim();
-            const right = b.querySelector('.q-right').value.trim();
-            const wrongStr = b.querySelector('.q-wrong').value.trim();
+        if(type === 'choice') {
+            const rows = document.querySelectorAll('.answer-row');
+            if(rows.length < 2) { alert("Минимум 2 варианта ответа!"); return; }
+            
+            newQ.options = [];
+            let correctFound = false;
+            
+            rows.forEach(row => {
+                const val = row.querySelector('.ans-val').value.trim();
+                const isCorrect = row.querySelector('.correct-radio').checked;
+                if(val) {
+                    newQ.options.push(val);
+                    if(isCorrect) {
+                        newQ.answer = val;
+                        correctFound = true;
+                    }
+                }
+            });
 
-            if(q && right) {
-                let opts = [right];
-                if(wrongStr) opts = opts.concat(wrongStr.split(',').map(s=>s.trim()));
-                // Перемешиваем
-                opts.sort(() => Math.random() - 0.5);
-                
-                data.qs.push({
-                    type: "choice", 
-                    q: q, 
-                    options: opts, 
-                    answer: right
-                });
-            }
+            if(!correctFound) { alert("Выберите правильный ответ (нажмите кружок)!"); return; }
+        } else {
+            const ans = document.getElementById('mCorrectText').value.trim();
+            if(!ans) { alert("Введите правильный ответ!"); return; }
+            newQ.answer = ans;
+        }
+
+        if(editingId !== null) {
+            questions[editingId] = newQ;
+        } else {
+            if(questions.length >= 9) { alert("Максимум 9 вопросов (по числу блоков)!"); return; }
+            questions.push(newQ);
+        }
+
+        closeModal();
+        renderList();
+        updatePreview();
+    }
+
+    function deleteQ(index) {
+        if(confirm("Удалить этот вопрос?")) {
+            questions.splice(index, 1);
+            renderList();
+            updatePreview();
+        }
+    }
+
+    function renderList() {
+        const list = document.getElementById('qList');
+        list.innerHTML = '';
+        document.getElementById('qCount').innerText = questions.length;
+
+        questions.forEach((q, idx) => {
+            const div = document.createElement('div');
+            div.className = 'q-item';
+            
+            let badges = '';
+            if(q.type === 'input') badges += '<span class="badge">Ввод</span>';
+            if(q.timer) badges += `<span class="badge">⏱ ${q.timer}с</span>`;
+            if(q.img) badges += '<span class="badge">📷</span>';
+            
+            div.innerHTML = `
+                <div onclick="openModal(questions[${idx}], ${idx})">
+                    <div style="font-weight:bold;">${idx+1}. ${q.q}</div>
+                    <div class="q-badges">${badges}</div>
+                </div>
+                <button class="btn btn-small btn-del" style="width:30px; margin-top:0;" onclick="deleteQ(${idx})">🗑</button>
+            `;
+            list.appendChild(div);
         });
+    }
 
-        if(data.qs.length === 0) { alert("Добавьте вопросы!"); return; }
+    // --- ПРЕВЬЮ И КОПИРОВАНИЕ ---
 
+    function getExportData() {
+        return {
+            bg: document.getElementById('bgUrl').value,
+            qs: questions
+        };
+    }
+
+    function updatePreview() {
+        const data = getExportData();
+        // Если вопросов нет, не обновляем, чтобы не было ошибок
+        // Но для теста можно отправить пустой
         const json = JSON.stringify(data);
         const encoded = btoa(unescape(encodeURIComponent(json)));
-        const finalUrl = GAME_URL + "?data=" + encoded;
+        const fullUrl = GAME_URL + "?data=" + encoded;
         
-        document.getElementById('result').value = 
-            `<iframe src="${finalUrl}" width="100%" height="600" style="border:none;" allowfullscreen></iframe>`;
+        document.getElementById('gameFrame').src = fullUrl;
     }
+
+    function copyCode() {
+        if(questions.length === 0) {
+            alert("Добавьте хотя бы один вопрос перед копированием!");
+            return;
+        }
+        const data = getExportData();
+        const json = JSON.stringify(data);
+        const encoded = btoa(unescape(encodeURIComponent(json)));
+        const fullUrl = GAME_URL + "?data=" + encoded;
+        
+        const iframeCode = `<iframe src="${fullUrl}" width="100%" height="600" style="border:none;" allowfullscreen></iframe>`;
+        
+        navigator.clipboard.writeText(iframeCode).then(() => {
+            alert("✅ Код скопирован в буфер обмена!\nТеперь просто нажмите Ctrl+V в Genially.");
+        }).catch(err => {
+            alert("Ошибка копирования. Попробуйте вручную.");
+        });
+    }
+
+    // Инициализация
+    updatePreview();
 </script>
 </body>
 </html>
