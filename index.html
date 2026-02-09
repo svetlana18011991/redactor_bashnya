@@ -84,13 +84,14 @@ let QS = [{type:"choice",q:"Пример вопроса?",options:["1","2"],answ
 let BG_SRC = REPO + "1.png";
 let SHUFFLE = false;
 let MUSIC_SRC = null;
-const OVERLAP = 4; // Легкий нахлест для устранения щелей
+const OVERLAP = 4; // Нахлест, чтобы не было щелей
 
-if(window.GAME_DATA) {
-    if(window.GAME_DATA.qs && window.GAME_DATA.qs.length) QS = window.GAME_DATA.qs;
-    if(window.GAME_DATA.bg) BG_SRC = window.GAME_DATA.bg;
-    if(window.GAME_DATA.music) MUSIC_SRC = window.GAME_DATA.music;
-    SHUFFLE = window.GAME_DATA.shuffle;
+// ПРИЕМ ДАННЫХ
+if(window.GAME_CONFIG) {
+    if(window.GAME_CONFIG.qs && window.GAME_CONFIG.qs.length) QS = window.GAME_CONFIG.qs;
+    if(window.GAME_CONFIG.bg) BG_SRC = window.GAME_CONFIG.bg;
+    if(window.GAME_CONFIG.music) MUSIC_SRC = window.GAME_CONFIG.music;
+    SHUFFLE = window.GAME_CONFIG.shuffle;
 } else {
     try {
         const p = new URLSearchParams(location.search).get('data');
@@ -145,7 +146,8 @@ function spawn() {
     game.curr = {
         img: img, w: img.width * scale, h: img.height * scale,
         x: W/2 - (img.width * scale)/2, y: -200, 
-        drop: false
+        drop: false,
+        char: 0 // Степень обугливания
     };
     game.wait = false;
 }
@@ -159,7 +161,7 @@ function update(dt) {
     if(!game.run) return;
     game.offY = game.offY * 0.9 + game.camY * 0.1;
 
-    // EFFECTS UPDATE
+    // EFFECTS
     game.particles.forEach((p,i)=>{
         p.x+=p.vx; p.y+=p.vy; p.l-=0.02;
         if(p.l<=0) game.particles.splice(i,1);
@@ -175,6 +177,13 @@ function update(dt) {
 
     if(game.curr) {
         const b = game.curr;
+        // Анимация обугливания
+        if(b.charring) {
+            b.char += dt * 2; // Скорость почернения
+            if(b.char >= 1) { b.char = 1; boom(); } // Взрыв после почернения
+            return;
+        }
+
         if(game.wait) return;
 
         if(b.drop) {
@@ -274,10 +283,11 @@ function answer(win) {
             game.curr.drop = true;
         }, 1000);
     } else {
-        msg.innerText = "НЕВЕРНО! Блок сгорает."; msg.style.color = "var(--bad)";
+        msg.innerText = "ОШИБКА! БЛОК СГОРАЕТ..."; msg.style.color = "var(--bad)";
         setTimeout(() => { 
             document.getElementById('overlay').style.display = 'none';
-            boom();
+            // Запускаем процесс обугливания
+            game.curr.charring = true;
         }, 1500);
     }
     game.qIdx++;
@@ -289,26 +299,9 @@ function boom() {
     const cx = b.x + b.w/2;
     const cy = b.y + b.h/2;
     
-    // Вспышка и кольцо
     game.rings.push({x:cx, y:cy, rad:10, l:1});
-    
-    // Дым
-    for(let i=0; i<10; i++) {
-        game.smokes.push({
-            x: cx, y: cy,
-            vx: (Math.random()-0.5)*5, vy: (Math.random()-0.5)*5,
-            l: 1, rad: 10
-        });
-    }
-    
-    // Частицы
-    for(let i=0; i<30; i++) {
-        game.particles.push({
-            x: cx, y: cy,
-            vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15 - 5,
-            l: 1
-        });
-    }
+    for(let i=0; i<10; i++) game.smokes.push({x: cx, y: cy, vx: (Math.random()-0.5)*5, vy: (Math.random()-0.5)*5, l: 1, rad: 10});
+    for(let i=0; i<30; i++) game.particles.push({x: cx, y: cy, vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15 - 5, l: 1});
     
     game.curr = null;
     game.wait = false;
@@ -338,22 +331,29 @@ function loop() {
     ctx.translate(0, Math.round(game.offY));
 
     game.tower.forEach(b => ctx.drawImage(b.img, Math.round(b.x), Math.round(b.y), b.w, b.h));
-    if(game.curr) ctx.drawImage(game.curr.img, Math.round(game.curr.x), Math.round(game.curr.y), game.curr.w, game.curr.h);
+    
+    if(game.curr) {
+        // Отрисовка блока
+        ctx.drawImage(game.curr.img, Math.round(game.curr.x), Math.round(game.curr.y), game.curr.w, game.curr.h);
+        
+        // Отрисовка обугливания (черный слой сверху)
+        if(game.curr.char > 0) {
+            ctx.globalCompositeOperation = "source-atop";
+            ctx.fillStyle = `rgba(0,0,0,${game.curr.char})`;
+            ctx.fillRect(game.curr.x, game.curr.y, game.curr.w, game.curr.h);
+            
+            // Красный жар
+            ctx.globalCompositeOperation = "lighter";
+            ctx.fillStyle = `rgba(255,100,50,${game.curr.char * 0.5})`;
+            ctx.fillRect(game.curr.x, game.curr.y, game.curr.w, game.curr.h);
+            
+            ctx.globalCompositeOperation = "source-over";
+        }
+    }
 
-    // Render Effects
-    game.smokes.forEach(s => {
-        ctx.fillStyle = `rgba(50,50,50,${s.l*0.5})`;
-        ctx.beginPath(); ctx.arc(s.x, s.y, s.rad, 0, Math.PI*2); ctx.fill();
-    });
-    game.rings.forEach(r => {
-        ctx.strokeStyle = `rgba(255,255,255,${r.l})`;
-        ctx.lineWidth = 4;
-        ctx.beginPath(); ctx.arc(r.x, r.y, r.rad, 0, Math.PI*2); ctx.stroke();
-    });
-    game.particles.forEach(p => {
-        ctx.fillStyle = `rgba(255,${Math.random()*150+100},50,${p.l})`;
-        ctx.fillRect(p.x,p.y,5,5);
-    });
+    game.smokes.forEach(s => { ctx.fillStyle = `rgba(50,50,50,${s.l*0.5})`; ctx.beginPath(); ctx.arc(s.x, s.y, s.rad, 0, Math.PI*2); ctx.fill(); });
+    game.rings.forEach(r => { ctx.strokeStyle = `rgba(255,255,255,${r.l})`; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(r.x, r.y, r.rad, 0, Math.PI*2); ctx.stroke(); });
+    game.particles.forEach(p => { ctx.fillStyle = `rgba(255,${Math.random()*150+100},50,${p.l})`; ctx.fillRect(p.x,p.y,5,5); });
 
     ctx.restore();
     ctx.fillStyle="#222"; ctx.fillRect(0, H-50+Math.round(game.offY), W, 50);
