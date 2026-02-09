@@ -188,8 +188,9 @@
         return "data:text/html;charset=utf-8;base64," + btoa(unescape(encodeURIComponent(html)));
     }
 
-    async function updatePreview() {
-        if(!qs.length && !assets.bg) return;
+    async async function updatePreview() {
+        // всегда пытаемся обновить превью, даже если фон не выбран
+        
         const url = await getBase64Code();
         if(url) document.getElementById('gameFrame').src = url;
     }
