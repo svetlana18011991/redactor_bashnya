@@ -11,382 +11,307 @@
         .sidebar { width: 420px; background: var(--panel); border-right: 2px solid var(--gold); display: flex; flex-direction: column; padding: 20px; overflow-y: auto; flex-shrink: 0; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
         h1 { font-size: 20px; text-align: center; border-bottom: 1px solid var(--gold-dim); padding-bottom: 15px; color: var(--gold); margin-top: 0; text-transform: uppercase; }
         
-        label { display: block; margin-top: 15px; font-size: 13px; color: var(--gold); margin-bottom: 5px; font-weight: bold;}
         .setting-group { border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 6px; padding: 10px; background: rgba(0,0,0,0.2); margin-bottom: 10px; }
+        label { display: block; font-size: 13px; color: var(--gold); margin-bottom: 5px; font-weight: bold; }
         
-        .file-control { display: flex; align-items: center; gap: 10px; }
-        .status-text { font-size: 11px; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100px; }
+        .file-row { display: flex; align-items: center; gap: 10px; }
+        .status { font-size: 11px; color: #aaa; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        input, select { width: 100%; background: #fff; border: 1px solid var(--gold-dim); padding: 8px; border-radius: 4px; box-sizing: border-box; font-family: sans-serif; color: #000; }
+        .btn { background: linear-gradient(180deg, var(--gold), var(--gold-dim)); color: #000; border: none; padding: 8px 12px; font-weight: bold; cursor: pointer; border-radius: 4px; text-transform: uppercase; transition: 0.2s; font-size: 12px; }
+        .btn:hover { filter: brightness(1.15); }
+        .btn-icon { background: rgba(255,255,255,0.1); color: #fff; padding: 8px; width: 32px; text-align: center; }
+        .btn-icon:hover { background: #ff4444; }
+        
+        .main-btn { width: 100%; font-size: 14px; padding: 12px; margin-top: 5px; }
         
         #qList { flex: 1; overflow-y: auto; margin: 20px 0; border-top: 1px solid rgba(255,215,0,0.2); padding-top: 10px; }
-        .q-item { background: rgba(0,0,0,0.3); border: 1px solid var(--gold-dim); padding: 10px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; }
-        .q-item:hover { background: rgba(255,215,0,0.2); }
-        .q-badges { display: flex; gap: 5px; font-size: 10px; }
-        .badge { padding: 2px 5px; border-radius: 4px; background: var(--gold); color: #000; font-weight: bold;}
+        .q-item { background: rgba(0,0,0,0.3); border: 1px solid var(--gold-dim); padding: 10px; margin-bottom: 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .q-item:hover { background: rgba(255,215,0,0.15); }
         
-        .btn { background: linear-gradient(180deg, var(--gold), var(--gold-dim)); color: #000; border: none; padding: 10px; font-weight: bold; cursor: pointer; border-radius: 4px; text-transform: uppercase; width: 100%; transition: 0.2s; }
-        .btn:hover { filter: brightness(1.15); }
-        .btn-small { width: auto; padding: 5px 10px; font-size: 12px; }
-        .btn-del { background: #ff4444; color: white; }
-        .btn-file { background: #444; color: white; border: 1px solid #666; font-size: 12px; text-transform: none; padding: 8px; width: auto;}
-        .btn-icon { background: transparent; border: 1px solid #555; color: #aaa; cursor: pointer; padding: 5px 8px; border-radius: 4px; }
-        .btn-icon:hover { color: #fff; border-color: #fff; }
-
-        .preview-area { flex: 1; display: flex; flex-direction: column; background: #000; position: relative; }
+        .preview-area { flex: 1; background: #000; display: flex; flex-direction: column; }
         iframe { width: 100%; height: 100%; border: none; }
-        .preview-label { position: absolute; top: 10px; right: 10px; background: var(--gold); color: black; padding: 5px 10px; font-weight: bold; border-radius: 4px; z-index: 10; opacity: 0.8; pointer-events: none; }
+        .preview-label { background: var(--gold); color: black; padding: 5px 10px; font-weight: bold; text-align: center; }
 
         /* MODAL */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 100; }
-        .modal { background: var(--panel); border: 2px solid var(--gold); width: 500px; max-height: 90vh; overflow-y: auto; padding: 25px; border-radius: 10px; box-shadow: 0 0 40px rgba(255, 215, 0, 0.3); }
-        .media-row { display: flex; gap: 10px; align-items: center; margin-top: 5px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px;}
-        .preview-mini { max-height: 40px; max-width: 40px; display: none; border: 1px solid #fff; }
-        .answer-row { display: flex; gap: 5px; align-items: center; margin-bottom: 5px; }
-        .correct-radio { accent-color: var(--gold); transform: scale(1.5); cursor: pointer; width: auto; }
-        .chk-input { transform: scale(1.5); accent-color: var(--gold); width: auto; }
-
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #051024; }
-        ::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 4px; }
+        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 100; }
+        .modal { background: var(--panel); border: 2px solid var(--gold); width: 500px; max-height: 90vh; overflow-y: auto; padding: 25px; border-radius: 10px; box-shadow: 0 0 50px rgba(0,0,0,0.8); }
+        
+        input[type="text"], input[type="number"], select { width: 100%; padding: 8px; background: #fff; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; color: #000; }
+        .ans-row { display: flex; gap: 5px; margin-bottom: 5px; align-items: center; }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 3px; }
     </style>
 </head>
 <body>
 
 <div class="sidebar">
-    <h1>🏗 Редактор Башни</h1>
+    <h1>🏗 Редактор</h1>
     
     <div class="setting-group">
         <label>🖼 Фон игры:</label>
-        <div class="file-control">
+        <div class="file-row">
+            <button class="btn" onclick="document.getElementById('bgFile').click()">📂 Выбрать</button>
             <input type="file" id="bgFile" accept="image/*" style="display:none" onchange="handleFile('bg', this)">
-            <button class="btn btn-file" onclick="document.getElementById('bgFile').click()">📂 Обзор</button>
-            <button class="btn-icon" onclick="clearFile('bg')" title="Удалить фон">❌</button>
-            <span id="bgStatus" class="status-text">Стандарт</span>
-        </div>
-
-        <label>🎵 Фоновая музыка:</label>
-        <div class="file-control">
-            <input type="file" id="musicFile" accept="audio/*" style="display:none" onchange="handleFile('music', this)">
-            <button class="btn btn-file" onclick="document.getElementById('musicFile').click()">📂 Обзор</button>
-            <button class="btn-icon" onclick="clearFile('music')" title="Без музыки">❌</button>
-            <span id="musicStatus" class="status-text">Без музыки</span>
+            <span id="bgStatus" class="status">По умолчанию</span>
+            <button class="btn btn-icon" onclick="resetFile('bg')" title="Удалить">❌</button>
         </div>
         
+        <label>🎵 Музыка:</label>
+        <div class="file-row">
+            <button class="btn" onclick="document.getElementById('musicFile').click()">📂 Выбрать</button>
+            <input type="file" id="musicFile" accept="audio/*" style="display:none" onchange="handleFile('music', this)">
+            <span id="musicStatus" class="status">Нет</span>
+            <button class="btn btn-icon" onclick="resetFile('music')" title="Удалить">❌</button>
+        </div>
+
         <label>🎲 Порядок вопросов:</label>
         <select id="shuffleMode" onchange="updatePreview()">
-            <option value="false">По порядку (1 -> 2 -> 3)</option>
+            <option value="false">По порядку (1 → 2 → 3...)</option>
             <option value="true">Случайный (Перемешать)</option>
         </select>
-        <small style="color:#aaa; font-size:10px;">Вопросы будут повторяться по кругу.</small>
     </div>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 25px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
         <h3 style="margin:0; color:white;">Вопросы (<span id="qCount">0</span>)</h3>
-        <button class="btn btn-small" style="width:auto; margin:0;" onclick="openModal()">+ ДОБАВИТЬ</button>
+        <button class="btn" onclick="openModal()">+ Добавить</button>
     </div>
 
     <div id="qList"></div>
 
-    <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid #333;">
-        <button class="btn" onclick="copyCode()" style="font-size: 16px; padding: 15px;">📋 СКОПИРОВАТЬ КОД</button>
-        <p style="font-size: 11px; color: #888; text-align: center; margin-top: 5px;">Для вставки в Genially</p>
+    <div style="margin-top:auto; padding-top:20px;">
+        <button class="btn main-btn" onclick="copyCode()">📋 СКОПИРОВАТЬ КОД</button>
+        <div style="text-align:center; font-size:11px; color:#888; margin-top:5px;">Для вставки в Genially</div>
     </div>
 </div>
 
 <div class="preview-area">
-    <div class="preview-label">LIVE PREVIEW</div>
+    <div class="preview-label">ПРЕДПРОСМОТР</div>
     <iframe id="gameFrame"></iframe>
 </div>
 
 <div class="modal-overlay" id="modal">
     <div class="modal">
-        <h2 style="text-align:center; color:var(--gold);">Настройка вопроса</h2>
+        <h2 style="text-align:center; color:var(--gold); margin-top:0;">Вопрос</h2>
         
-        <label>Тип вопроса:</label>
-        <select id="mType" onchange="toggleAnsType()">
-            <option value="choice">Множественный выбор</option>
-            <option value="input">Ввод ответа (текст/число)</option>
+        <label>Тип:</label>
+        <select id="mType" onchange="toggleType()">
+            <option value="choice">Выбор ответа</option>
+            <option value="input">Ввод ответа</option>
         </select>
 
         <label>Текст вопроса:</label>
-        <input type="text" id="mText" placeholder="Введите вопрос...">
+        <input type="text" id="mText" placeholder="Напишите вопрос...">
 
-        <label>Медиа (необязательно):</label>
-        <div class="media-row">
-            <button class="btn btn-small btn-file" onclick="document.getElementById('mImgFile').click()">📷 Фото</button>
-            <input type="file" id="mImgFile" accept="image/*" style="display:none" onchange="handleMediaPreview('img', this)">
-            <img id="prevImg" class="preview-mini">
-            <span id="nameImg" class="status-text" style="margin-left:5px;">Нет</span>
-            <button class="btn-icon" style="margin-left:auto;" onclick="clearMedia('img')">❌</button>
+        <label>Картинка / Звук (необязательно):</label>
+        <div class="file-row" style="margin-bottom:5px;">
+            <button class="btn" onclick="document.getElementById('mImg').click()">📷 Фото</button>
+            <input type="file" id="mImg" accept="image/*" style="display:none" onchange="handleMedia('img', this)">
+            <span id="stImg" class="status">Нет</span>
+            <button class="btn btn-icon" onclick="clearMedia('img')">❌</button>
         </div>
-        <div class="media-row">
-            <button class="btn btn-small btn-file" onclick="document.getElementById('mAudioFile').click()">🎵 Звук</button>
-            <input type="file" id="mAudioFile" accept="audio/*" style="display:none" onchange="handleMediaPreview('audio', this)">
-            <span id="nameAudio" class="status-text" style="margin-left:5px;">Нет</span>
-            <button class="btn-icon" style="margin-left:auto;" onclick="clearMedia('audio')">❌</button>
+        <div class="file-row">
+            <button class="btn" onclick="document.getElementById('mAud').click()">🎵 Звук</button>
+            <input type="file" id="mAud" accept="audio/*" style="display:none" onchange="handleMedia('audio', this)">
+            <span id="stAud" class="status">Нет</span>
+            <button class="btn btn-icon" onclick="clearMedia('audio')">❌</button>
         </div>
 
-        <div style="margin: 15px 0; padding: 10px; border: 1px solid var(--gold-dim); border-radius: 5px; background: rgba(0,0,0,0.2);">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <label style="margin:0; color:white; font-weight:bold;">⏱ Таймер (сек)</label>
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <input type="checkbox" id="mTimerInfo" class="chk-input" onchange="toggleTimerField()">
-                    <span id="timerValBox" style="display:none;">
-                        <input type="number" id="mSeconds" value="15" style="width:60px; padding:4px;">
-                    </span>
-                </div>
+        <div style="background:rgba(255,255,255,0.1); padding:10px; border-radius:5px; margin:15px 0;">
+            <div class="file-row">
+                <input type="checkbox" id="mTimer" style="width:auto;" onchange="toggleTimer()">
+                <label style="margin:0; color:white; cursor:pointer;" for="mTimer">Включить таймер</label>
+                <input type="number" id="mSec" value="15" style="width:60px; display:none;">
             </div>
         </div>
 
-        <label>Варианты ответов:</label>
-        <div id="answersContainer"></div>
-        <button id="btnAddAns" class="btn btn-small" style="background:#333; color:#ccc; border:1px solid #555; margin-top:5px;" onclick="addChoiceRow()">+ Вариант</button>
-
-        <div id="inputAnswerContainer" style="display:none;">
-            <label>Правильный ответ:</label>
-            <input type="text" id="mCorrectText" placeholder="Например: 42">
+        <div id="boxChoice">
+            <label>Варианты (отметьте верный):</label>
+            <div id="ansList"></div>
+            <button class="btn" style="margin-top:5px; background:#444; color:#fff;" onclick="addAnsRow()">+ Вариант</button>
         </div>
 
-        <div style="display:flex; gap:10px; margin-top:25px;">
-            <button class="btn" style="background:#333; color:white; border:1px solid #555;" onclick="closeModal()">Отмена</button>
-            <button class="btn" onclick="saveQuestion()">СОХРАНИТЬ</button>
+        <div id="boxInput" style="display:none;">
+            <label>Правильный ответ:</label>
+            <input type="text" id="mCorrect" placeholder="Например: Париж">
+        </div>
+
+        <div class="file-row" style="margin-top:25px; justify-content:flex-end;">
+            <button class="btn" style="background:#444; color:#fff;" onclick="closeModal()">Отмена</button>
+            <button class="btn" onclick="saveQ()">СОХРАНИТЬ</button>
         </div>
     </div>
 </div>
 
 <script>
-    let questions = [];
-    let editingId = null;
-    let customBg = null;
-    let customMusic = null;
-    let tempMedia = { img: null, audio: null };
+    let qs = [], editIdx = null, assets = { bg: null, music: null }, temp = {};
 
-    // --- ФАЙЛЫ ---
-    function handleFile(type, input) {
-        const file = input.files[0];
-        if(!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            if(type === 'bg') {
-                customBg = e.target.result;
-                document.getElementById('bgStatus').innerText = "Загружен";
-                document.getElementById('bgStatus').style.color = "#0f0";
-            } else if(type === 'music') {
-                customMusic = e.target.result;
-                document.getElementById('musicStatus').innerText = "Загружен";
-                document.getElementById('musicStatus').style.color = "#0f0";
-            }
+    function handleFile(key, inp) {
+        if(!inp.files[0]) return;
+        const r = new FileReader();
+        r.onload = e => {
+            assets[key] = e.target.result;
+            document.getElementById(key+'Status').innerText = "Загружен";
+            document.getElementById(key+'Status').style.color = "#0f0";
             updatePreview();
         };
-        reader.readAsDataURL(file);
+        r.readAsDataURL(inp.files[0]);
     }
 
-    function clearFile(type) {
-        if(type === 'bg') {
-            customBg = null;
-            document.getElementById('bgStatus').innerText = "Стандарт";
-            document.getElementById('bgStatus').style.color = "#aaa";
-            document.getElementById('bgFile').value = "";
-        } else if(type === 'music') {
-            customMusic = null;
-            document.getElementById('musicStatus').innerText = "Без музыки";
-            document.getElementById('musicStatus').style.color = "#aaa";
-            document.getElementById('musicFile').value = "";
-        }
+    function resetFile(key) {
+        assets[key] = null;
+        const el = document.getElementById(key+'Status');
+        el.innerText = key==='bg' ? "По умолчанию" : "Нет";
+        el.style.color = "#aaa";
+        document.getElementById(key+'File').value = "";
         updatePreview();
     }
 
-    function handleMediaPreview(type, input) {
-        const file = input.files[0];
-        if(!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            tempMedia[type] = e.target.result;
-            if(type === 'img') {
-                document.getElementById('prevImg').src = e.target.result;
-                document.getElementById('prevImg').style.display = 'block';
-                document.getElementById('nameImg').innerText = "OK";
-            } else {
-                document.getElementById('nameAudio').innerText = "OK";
-            }
+    function handleMedia(key, inp) {
+        if(!inp.files[0]) return;
+        const r = new FileReader();
+        r.onload = e => {
+            temp[key] = e.target.result;
+            document.getElementById(key==='img'?'stImg':'stAud').innerText = "Загружен";
         };
-        reader.readAsDataURL(file);
+        r.readAsDataURL(inp.files[0]);
     }
 
-    function clearMedia(type) {
-        tempMedia[type] = null;
-        document.getElementById(type === 'img' ? 'nameImg' : 'nameAudio').innerText = "Нет";
-        document.getElementById(type === 'img' ? 'mImgFile' : 'mAudioFile').value = "";
-        if(type==='img') document.getElementById('prevImg').style.display = 'none';
+    function clearMedia(key) {
+        temp[key] = null;
+        document.getElementById(key==='img'?'stImg':'stAud').innerText = "Нет";
+        document.getElementById(key==='img'?'mImg':'mAud').value = "";
     }
 
-    // --- UI ---
-    function openModal(qData = null, index = null) {
+    // Modal
+    function openModal(item = null, idx = null) {
         document.getElementById('modal').style.display = 'flex';
-        tempMedia = { img: null, audio: null };
-        document.getElementById('prevImg').style.display = 'none';
-        document.getElementById('nameImg').innerText = 'Нет';
-        document.getElementById('nameAudio').innerText = 'Нет';
-        document.getElementById('mTimerInfo').checked = false;
-        document.getElementById('mSeconds').value = 15;
-        document.getElementById('answersContainer').innerHTML = '';
-        document.getElementById('mCorrectText').value = '';
+        temp = { img: null, audio: null };
+        document.getElementById('stImg').innerText = "Нет";
+        document.getElementById('stAud').innerText = "Нет";
+        document.getElementById('ansList').innerHTML = "";
         
-        if(qData) {
-            editingId = index;
-            document.getElementById('mType').value = qData.type;
-            document.getElementById('mText').value = qData.q;
+        if(item) {
+            editIdx = idx;
+            document.getElementById('mType').value = item.type;
+            document.getElementById('mText').value = item.q;
+            document.getElementById('mTimer').checked = !!item.timer;
+            document.getElementById('mSec').value = item.timer || 15;
+            if(item.img) { temp.img = item.img; document.getElementById('stImg').innerText = "ОК"; }
+            if(item.audio) { temp.audio = item.audio; document.getElementById('stAud').innerText = "ОК"; }
             
-            if(qData.timer) {
-                document.getElementById('mTimerInfo').checked = true;
-                document.getElementById('mSeconds').value = qData.timer;
-            }
-            if(qData.img) {
-                tempMedia.img = qData.img;
-                document.getElementById('prevImg').src = qData.img;
-                document.getElementById('prevImg').style.display = 'block';
-                document.getElementById('nameImg').innerText = 'Загружено';
-            }
-            if(qData.audio) {
-                tempMedia.audio = qData.audio;
-                document.getElementById('nameAudio').innerText = 'Загружено';
-            }
-
-            if(qData.type === 'choice') {
-                qData.options.forEach(opt => addChoiceRow(opt, opt === qData.answer));
+            if(item.type === 'choice') {
+                item.options.forEach(o => addAnsRow(o, o === item.answer));
             } else {
-                document.getElementById('mCorrectText').value = qData.answer;
+                document.getElementById('mCorrect').value = item.answer;
             }
         } else {
-            editingId = null;
+            editIdx = null;
             document.getElementById('mType').value = 'choice';
-            document.getElementById('mText').value = '';
-            addChoiceRow('', true); 
-            addChoiceRow('');       
+            document.getElementById('mText').value = "";
+            document.getElementById('mTimer').checked = false;
+            addAnsRow('', true); addAnsRow('');
         }
-        toggleAnsType();
-        toggleTimerField();
+        toggleType(); toggleTimer();
     }
 
     function closeModal() { document.getElementById('modal').style.display = 'none'; }
-    function toggleTimerField() { document.getElementById('timerValBox').style.display = document.getElementById('mTimerInfo').checked ? 'block' : 'none'; }
-    function toggleAnsType() {
-        const isChoice = document.getElementById('mType').value === 'choice';
-        document.getElementById('answersContainer').style.display = isChoice ? 'block' : 'none';
-        document.getElementById('btnAddAns').style.display = isChoice ? 'inline-block' : 'none';
-        document.getElementById('inputAnswerContainer').style.display = isChoice ? 'none' : 'block';
+    function toggleTimer() { document.getElementById('mSec').style.display = document.getElementById('mTimer').checked ? 'block' : 'none'; }
+    
+    function toggleType() {
+        const isCh = document.getElementById('mType').value === 'choice';
+        document.getElementById('boxChoice').style.display = isCh ? 'block' : 'none';
+        document.getElementById('boxInput').style.display = isCh ? 'none' : 'block';
     }
 
-    function addChoiceRow(val = '', isCorrect = false) {
+    function addAnsRow(val = '', isCorrect = false) {
         const div = document.createElement('div');
-        div.className = 'answer-row';
+        div.className = 'ans-row';
         div.innerHTML = `
-            <input type="radio" name="correctAns" class="correct-radio" ${isCorrect ? 'checked' : ''}>
-            <input type="text" class="ans-val" value="${val}" placeholder="Вариант ответа">
-            <button class="btn btn-small btn-del" onclick="this.parentElement.remove()" style="width:30px; margin-top:0;">×</button>
+            <input type="radio" name="rad" style="width:auto;" ${isCorrect?'checked':''}>
+            <input type="text" class="ans-val" value="${val}" placeholder="Ответ">
+            <button class="btn btn-icon" style="padding:2px;" onclick="this.parentElement.remove()">×</button>
         `;
-        document.getElementById('answersContainer').appendChild(div);
+        document.getElementById('ansList').appendChild(div);
     }
 
-    function saveQuestion() {
-        const type = document.getElementById('mType').value;
-        const qText = document.getElementById('mText').value;
-        if(!qText.trim()) { alert("Введите текст вопроса!"); return; }
-
-        const newQ = {
-            type: type,
-            q: qText,
-            img: tempMedia.img,
-            audio: tempMedia.audio,
-            timer: document.getElementById('mTimerInfo').checked ? parseInt(document.getElementById('mSeconds').value) : null
+    function saveQ() {
+        const q = {
+            type: document.getElementById('mType').value,
+            q: document.getElementById('mText').value,
+            img: temp.img, audio: temp.audio,
+            timer: document.getElementById('mTimer').checked ? parseInt(document.getElementById('mSec').value) : null
         };
+        
+        if(!q.q.trim()) return alert("Введите вопрос");
 
-        if(type === 'choice') {
-            const rows = document.querySelectorAll('.answer-row');
-            if(rows.length < 2) { alert("Минимум 2 варианта!"); return; }
-            newQ.options = [];
-            let correctFound = false;
-            rows.forEach(row => {
-                const val = row.querySelector('.ans-val').value.trim();
-                if(val) {
-                    newQ.options.push(val);
-                    if(row.querySelector('.correct-radio').checked) { newQ.answer = val; correctFound = true; }
+        if(q.type === 'choice') {
+            const rows = document.querySelectorAll('.ans-row');
+            if(rows.length < 2) return alert("Минимум 2 варианта");
+            q.options = [];
+            let ok = false;
+            rows.forEach(r => {
+                const txt = r.querySelector('.ans-val').value.trim();
+                if(txt) {
+                    q.options.push(txt);
+                    if(r.querySelector('input[type=radio]').checked) { q.answer = txt; ok = true; }
                 }
             });
-            if(!correctFound) { alert("Отметьте правильный ответ!"); return; }
+            if(!ok) return alert("Выберите правильный ответ");
         } else {
-            const ans = document.getElementById('mCorrectText').value.trim();
-            if(!ans) { alert("Укажите правильный ответ!"); return; }
-            newQ.answer = ans;
+            q.answer = document.getElementById('mCorrect').value.trim();
+            if(!q.answer) return alert("Введите ответ");
         }
 
-        if(editingId !== null) questions[editingId] = newQ;
-        else questions.push(newQ);
-
-        closeModal();
-        renderList();
-        updatePreview();
+        if(editIdx !== null) qs[editIdx] = q; else qs.push(q);
+        closeModal(); render(); updatePreview();
     }
 
-    function deleteQ(index) { if(confirm("Удалить?")) { questions.splice(index, 1); renderList(); updatePreview(); } }
+    function deleteQ(i) { if(confirm("Удалить?")) { qs.splice(i,1); render(); updatePreview(); } }
 
-    function renderList() {
-        const list = document.getElementById('qList');
-        list.innerHTML = '';
-        document.getElementById('qCount').innerText = questions.length;
-        questions.forEach((q, idx) => {
-            const div = document.createElement('div');
-            div.className = 'q-item';
-            let badges = [];
-            if(q.timer) badges.push('⏱');
-            if(q.img) badges.push('📷');
-            div.innerHTML = `
-                <div onclick="openModal(questions[${idx}], ${idx})" style="flex:1;">
-                    <div style="font-weight:bold; color:white;">${idx+1}. ${q.q}</div>
-                    <div class="q-badges">${badges.join(' ')}</div>
-                </div>
-                <button class="btn btn-small btn-del" style="width:30px; margin:0;" onclick="deleteQ(${idx})">🗑</button>
+    function render() {
+        const l = document.getElementById('qList');
+        l.innerHTML = "";
+        document.getElementById('qCount').innerText = qs.length;
+        qs.forEach((q, i) => {
+            const d = document.createElement('div');
+            d.className = 'q-item';
+            d.innerHTML = `
+                <div onclick="openModal(qs[${i}], ${i})" style="flex:1"><b>${i+1}.</b> ${q.q}</div>
+                <button class="btn btn-icon" onclick="deleteQ(${i})">🗑</button>
             `;
-            list.appendChild(div);
+            l.appendChild(d);
         });
     }
 
-    // --- ГЕНЕРАЦИЯ ---
-    async function constructGameCode() {
-        // Загружаем шаблон
-        const response = await fetch('./index.html');
-        let html = await response.text();
-        
-        // Вшиваем конфиг
-        const config = {
-            qs: questions,
-            bg: customBg,
-            music: customMusic,
+    // PREVIEW & EXPORT
+    async function getCode() {
+        const resp = await fetch('./index.html');
+        if(!resp.ok) return null;
+        let html = await resp.text();
+        const cfg = {
+            qs: qs,
+            bg: assets.bg,
+            music: assets.music,
             shuffle: document.getElementById('shuffleMode').value === 'true'
         };
-
-        const scriptTag = `<script>window.GAME_CONFIG = ${JSON.stringify(config)};<\/script>`;
-        return html.replace('<head>', '<head>' + scriptTag);
+        // Вшиваем конфиг в самое начало
+        return html.replace('<head>', `<head><script>window.GAME_CFG=${JSON.stringify(cfg)};<\/script>`);
     }
 
     async function updatePreview() {
-        if(questions.length === 0 && !customBg) return;
-        const code = await constructGameCode();
-        document.getElementById('gameFrame').srcdoc = code;
+        const code = await getCode();
+        if(code) document.getElementById('gameFrame').srcdoc = code;
     }
 
     async function copyCode() {
-        if(questions.length === 0) { alert("Сначала добавьте вопросы!"); return; }
-        const fullHtml = await constructGameCode();
-        // Используем srcdoc для максимальной совместимости
-        // Экранируем двойные кавычки, чтобы не сломать атрибут
-        const escapedHtml = fullHtml.replace(/"/g, '&quot;');
-        const finalCode = `<iframe srcdoc="${escapedHtml}" width="100%" height="100%" style="width:100%;height:600px;border:none;"></iframe>`;
-        
-        navigator.clipboard.writeText(finalCode).then(() => alert("✅ Код скопирован!"));
+        if(!qs.length) return alert("Добавьте вопросы!");
+        const code = await getCode();
+        const final = `<iframe srcdoc="${code.replace(/"/g, '&quot;')}" width="100%" height="100%" style="width:100%;height:600px;border:none;"></iframe>`;
+        navigator.clipboard.writeText(final).then(()=>alert("✅ Код скопирован!"));
     }
-    
+
     updatePreview();
 </script>
 </body>
