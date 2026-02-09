@@ -5,72 +5,63 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Башня знаний</title>
   <style>
-    :root{ --hud-bg: rgba(10, 12, 18, .55); --panel-bg: rgba(20, 22, 30, .95); --text: #fff; --gold: #FFD700; --good: #00C851; --bad: #ff4444; }
-    html,body{height:100%;margin:0;font-family:system-ui,sans-serif;background:#000;color:white;overflow:hidden;}
-    canvas{width:100%;height:100%;display:block; image-rendering: pixelated;}
-
-    #timerWrap { position: absolute; top:0; left:0; width:100%; height:8px; display:none; z-index:20; background:rgba(255,255,255,0.1); }
-    #timerBar { height:100%; width:100%; background: linear-gradient(90deg, #ff9a9e, #ff5252); transition: width 0.1s linear; }
-
-    #hud { position:absolute; top:15px; left:15px; right:15px; display:flex; justify-content:space-between; z-index:3; pointer-events:none; }
-    .pill { background:var(--hud-bg); border:1px solid rgba(255,255,255,0.2); border-radius:20px; padding:8px 15px; font-weight:bold; backdrop-filter:blur(5px); }
-
-    #overlay { position:absolute; inset:0; background:rgba(0,0,0,0.85); display:none; align-items:center; justify-content:center; z-index:10; flex-direction:column; }
-    #card { width:90%; max-width:500px; background:var(--panel-bg); border:2px solid var(--gold); border-radius:15px; padding:25px; text-align:center; box-shadow:0 0 40px rgba(255,215,0,0.2); max-height:90vh; overflow-y:auto; }
+    :root{ --hud: rgba(10,12,18,.7); --gold: #FFD700; --good: #00C851; --bad: #ff4444; }
+    html,body{height:100%;margin:0;font-family:sans-serif;background:#000;color:#fff;overflow:hidden;}
+    canvas{width:100%;height:100%;display:block;image-rendering:pixelated;}
     
-    #qImg { max-width:100%; max-height:200px; border-radius:8px; margin-bottom:15px; display:none; border:1px solid #555; margin: 0 auto 15px; }
-    #qAudio { width:100%; margin-bottom:15px; display:none; }
-    #qText { font-size:22px; color:var(--gold); font-weight:bold; margin-bottom:20px; line-height:1.3; }
+    #timer{position:absolute;top:0;left:0;width:100%;height:8px;background:rgba(255,255,255,.1);display:none;z-index:20;}
+    #bar{height:100%;width:100%;background:linear-gradient(90deg,#ff9a9e,#ff5252);transition:width .1s linear;}
     
-    .ans-grid { display:grid; gap:10px; grid-template-columns:1fr; }
-    .ans-grid.cols { grid-template-columns:1fr 1fr; }
-    .btn { background:rgba(255,255,255,0.1); border:1px solid var(--gold); color:white; padding:12px; border-radius:8px; cursor:pointer; font-size:16px; transition:0.2s; }
-    .btn:hover { background:var(--gold); color:black; }
+    #hud{position:absolute;top:15px;left:15px;right:15px;display:flex;justify-content:space-between;z-index:5;pointer-events:none;}
+    .pill{background:var(--hud);padding:8px 16px;border-radius:20px;border:1px solid rgba(255,255,255,.2);font-weight:bold;backdrop-filter:blur(5px);}
     
-    #inputBox { display:none; }
-    input[type=text] { width:70%; padding:10px; background:#222; border:1px solid #555; color:white; font-size:16px; border-radius:5px; }
-    #msg { margin-top:15px; font-weight:bold; min-height:20px; }
+    #overlay{position:absolute;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:10;flex-direction:column;}
+    #card{width:90%;max-width:450px;background:#1a1c24;border:2px solid var(--gold);border-radius:15px;padding:25px;text-align:center;box-shadow:0 0 30px rgba(255,215,0,.2);max-height:90vh;overflow-y:auto;}
     
-    #startScreen, #endScreen { position:absolute; inset:0; background:rgba(0,0,0,0.95); z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
-    h1 { color:var(--gold); font-size:40px; margin-bottom:10px; text-shadow:0 0 15px var(--gold); }
-    .big-btn { background:var(--gold); color:black; border:none; padding:15px 40px; font-size:20px; border-radius:30px; font-weight:bold; cursor:pointer; margin-top:20px; box-shadow:0 0 20px var(--gold); transition:0.3s; }
-    .big-btn:hover { transform:scale(1.05); }
-    .hidden { display:none !important; }
+    .btn{background:rgba(255,255,255,.1);border:1px solid var(--gold);color:#fff;padding:12px;border-radius:8px;cursor:pointer;font-size:16px;margin:5px 0;width:100%;transition:.2s;}
+    .btn:hover{background:var(--gold);color:#000;}
+    
+    #qImg{max-width:100%;max-height:180px;margin-bottom:15px;border-radius:5px;display:none;margin:0 auto 10px;}
+    #qAud{width:100%;margin-bottom:10px;display:none;}
+    
+    #start, #end{position:absolute;inset:0;background:#000;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+    .big-btn{background:var(--gold);color:#000;border:none;padding:15px 40px;font-size:20px;border-radius:30px;font-weight:bold;cursor:pointer;margin-top:20px;}
+    .hide{display:none !important;}
   </style>
 </head>
 <body>
 
 <div id="wrap">
   <canvas id="c"></canvas>
-  <div id="timerWrap"><div id="timerBar"></div></div>
+  <div id="timer"><div id="bar"></div></div>
+  
   <div id="hud">
-    <div class="pill">Блоков: <span id="floorVal">0</span></div>
-    <div class="pill">Счёт: <span id="scoreVal">0</span></div>
+    <div class="pill">Блоков: <span id="hCount">0</span>/9</div>
+    <div class="pill">Счет: <span id="hScore">0</span></div>
   </div>
 
   <div id="overlay">
     <div id="card">
-      <img id="qImg">
-      <audio id="qAudio" controls></audio>
-      <div id="qText"></div>
-      <div id="ansBox" class="ans-grid"></div>
-      <div id="inputBox">
-        <input type="text" id="ansInput" placeholder="Ответ...">
-        <button class="btn" onclick="checkInput()">OK</button>
+      <img id="qImg"> <audio id="qAud" controls></audio>
+      <div id="qText" style="font-size:20px;margin-bottom:15px;color:var(--gold);font-weight:bold;"></div>
+      <div id="ansBox"></div>
+      <div id="inpBox" style="display:none;margin-top:10px;">
+        <input type="text" id="ansInp" style="width:70%;padding:10px;border-radius:5px;border:none;" placeholder="Ответ...">
+        <button class="btn" style="width:auto;margin-top:10px;" onclick="checkInp()">OK</button>
       </div>
-      <div id="msg"></div>
+      <div id="msg" style="margin-top:15px;font-weight:bold;min-height:20px;"></div>
     </div>
   </div>
 
-  <div id="startScreen">
-    <h1>БАШНЯ ЗНАНИЙ</h1>
-    <p style="color:#ccc; max-width:400px;">Построй башню из 9 блоков.<br>Верный ответ - блок ставится.<br>Ошибка - блок взрывается.</p>
+  <div id="start">
+    <h1 style="color:var(--gold);font-size:40px;">БАШНЯ ЗНАНИЙ</h1>
+    <p style="color:#aaa;">Построй башню из 9 блоков.<br>Ошибешься - блок сгорит.</p>
     <button class="big-btn" onclick="startGame()">НАЧАТЬ</button>
   </div>
 
-  <div id="endScreen" class="hidden">
-    <h1 id="endTitle">ФИНАЛ</h1>
-    <p>Счёт: <b id="finalScore" style="color:var(--gold); font-size:24px;">0</b></p>
+  <div id="end" class="hide">
+    <h1 id="endTitle" style="color:var(--gold)">ФИНАЛ</h1>
+    <p>Счет: <b id="finalScore">0</b></p>
     <button class="big-btn" onclick="location.reload()">ЗАНОВО</button>
   </div>
   
@@ -78,248 +69,162 @@
 </div>
 
 <script>
+// CONFIG
 const REPO = "https://svetlana18011991.github.io/redactor_bashnya/";
-const BLOCK_IMGS = ["3.png","4.png","5.png","6.png","7.png","8.png","9.png","10.png","11.png"];
-let QS = [{type:"choice",q:"Пример вопроса?",options:["1","2"],answer:"1"}];
-let BG_SRC = REPO + "1.png";
-let SHUFFLE = false;
-let MUSIC_SRC = null;
-const OVERLAP = 4; // Нахлест, чтобы не было щелей
+const IMGS = ["3.png","4.png","5.png","6.png","7.png","8.png","9.png","10.png","11.png"];
+let DATA = { qs: [{type:'choice',q:'2+2?',options:['3','4'],answer:'4'}], bg: REPO+"1.png", music: null, shuffle: false };
 
-// ПРИЕМ ДАННЫХ
-if(window.GAME_CONFIG) {
-    if(window.GAME_CONFIG.qs && window.GAME_CONFIG.qs.length) QS = window.GAME_CONFIG.qs;
-    if(window.GAME_CONFIG.bg) BG_SRC = window.GAME_CONFIG.bg;
-    if(window.GAME_CONFIG.music) MUSIC_SRC = window.GAME_CONFIG.music;
-    SHUFFLE = window.GAME_CONFIG.shuffle;
-} else {
+// LOAD CONFIG (Inject or URL)
+if(window.GAME_CFG) DATA = window.GAME_CFG;
+else {
     try {
         const p = new URLSearchParams(location.search).get('data');
-        if(p) {
-            const d = JSON.parse(decodeURIComponent(escape(atob(p))));
-            if(d.qs) QS = d.qs;
-            if(d.bg) BG_SRC = d.bg;
-        }
-    } catch(e){}
+        if(p) { const d=JSON.parse(decodeURIComponent(escape(atob(p)))); if(d.qs) DATA.qs=d.qs; if(d.bg) DATA.bg=d.bg; }
+    }catch(e){}
 }
 
-const cvs = document.getElementById("c"), ctx = cvs.getContext("2d");
+const cvs = document.getElementById('c'), ctx = cvs.getContext('2d');
 let W, H;
-const resize = ()=>{ W=cvs.width=window.innerWidth; H=cvs.height=window.innerHeight; };
-window.addEventListener("resize", resize); resize();
+const resize = () => { W=cvs.width=window.innerWidth; H=cvs.height=window.innerHeight; };
+window.addEventListener('resize', resize); resize();
 
-const ASSETS = { blocks: [], bg: null };
-const load = (src) => new Promise(r => { const i=new Image(); i.onload=()=>r(i); i.onerror=()=>r(null); i.src=(src.includes('data:')||src.includes('http'))?src:REPO+src; });
+const ASSETS = { b: [], bg: null };
+const loadImg = src => new Promise(r => { const i=new Image(); i.onload=()=>r(i); i.onerror=()=>r(null); i.src=(src.indexOf('data:')===0?src:REPO+src); });
 
 async function init() {
-    ASSETS.bg = await load(BG_SRC);
-    for(let f of BLOCK_IMGS) ASSETS.blocks.push(await load(f));
+    ASSETS.bg = await loadImg(DATA.bg);
+    for(let f of IMGS) ASSETS.b.push(await loadImg(f));
     
-    if(SHUFFLE) {
-        for (let i = QS.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [QS[i], QS[j]] = [QS[j], QS[i]];
+    if(DATA.shuffle) {
+        for(let i=DATA.qs.length-1; i>0; i--) {
+            const j = Math.floor(Math.random()*(i+1));
+            [DATA.qs[i], DATA.qs[j]] = [DATA.qs[j], DATA.qs[i]];
         }
     }
 }
 init();
 
-const game = { run: false, tower: [], curr: null, score: 0, qIdx: 0, camY: 0, particles: [], rings: [], smokes: [], wait: false, blockIdx: 0, offY:0 };
+let state = { run: false, tower: [], curr: null, score: 0, qIdx: 0, camY: 0, particles: [], rings: [], smokes: [] };
+let timerInt = null;
 
 function startGame() {
-    document.getElementById('startScreen').classList.add('hidden');
-    if(MUSIC_SRC) {
-        const audio = document.getElementById('bgMusic');
-        audio.src = MUSIC_SRC; audio.volume = 0.3;
-        audio.play().catch(e=>{});
-    }
-    game.run = true; game.tower = []; game.score = 0; game.qIdx = 0; game.camY = 0; game.blockIdx = 0; game.offY = 0;
+    document.getElementById('start').classList.add('hide');
+    if(DATA.music) { const a=document.getElementById('bgMusic'); a.src=DATA.music; a.volume=0.3; a.play().catch(()=>{}); }
+    state.run = true; state.tower = []; state.score = 0; state.qIdx = 0; state.camY = 0;
     updHUD(); spawn(); loop();
 }
 
 function spawn() {
-    if(game.blockIdx >= 9) { end(true); return; }
-    const img = ASSETS.blocks[game.blockIdx % ASSETS.blocks.length];
-    const towerH = 9 * (img.height - OVERLAP); 
-    const scale = Math.min(360 / img.width, (H - 200) / towerH);
+    if(state.tower.length >= 9) return end(true);
+    const img = ASSETS.b[state.tower.length % ASSETS.b.length];
+    const scale = Math.min(300/img.width, (H-200)/(9*img.height)); // Auto scale
     
-    game.curr = {
-        img: img, w: img.width * scale, h: img.height * scale,
-        x: W/2 - (img.width * scale)/2, y: -200, 
-        drop: false,
-        char: 0 // Степень обугливания
+    state.curr = {
+        img, w: img.width*scale, h: img.height*scale,
+        x: W/2 - (img.width*scale)/2, y: -150,
+        wait: false, drop: false, char: 0 // Charring level
     };
-    game.wait = false;
 }
 
 function updHUD() {
-    document.getElementById('floorVal').innerText = game.tower.length;
-    document.getElementById('scoreVal').innerText = game.score;
-}
-
-function update(dt) {
-    if(!game.run) return;
-    game.offY = game.offY * 0.9 + game.camY * 0.1;
-
-    // EFFECTS
-    game.particles.forEach((p,i)=>{
-        p.x+=p.vx; p.y+=p.vy; p.l-=0.02;
-        if(p.l<=0) game.particles.splice(i,1);
-    });
-    game.smokes.forEach((s,i)=>{
-        s.y-=1; s.x+=s.vx; s.l-=0.01; s.rad+=0.2;
-        if(s.l<=0) game.smokes.splice(i,1);
-    });
-    game.rings.forEach((r,i)=>{
-        r.rad+=5; r.l-=0.03;
-        if(r.l<=0) game.rings.splice(i,1);
-    });
-
-    if(game.curr) {
-        const b = game.curr;
-        // Анимация обугливания
-        if(b.charring) {
-            b.char += dt * 2; // Скорость почернения
-            if(b.char >= 1) { b.char = 1; boom(); } // Взрыв после почернения
-            return;
-        }
-
-        if(game.wait) return;
-
-        if(b.drop) {
-            let landY = H - 50;
-            if(game.tower.length) landY = game.tower[game.tower.length-1].y - b.h + OVERLAP;
-            
-            b.y += 900 * dt;
-            if(b.y >= landY) {
-                b.y = landY;
-                game.tower.push(b);
-                game.curr = null;
-                game.blockIdx++;
-                game.score += 100;
-                updHUD();
-                if(game.tower.length > 2) game.camY += b.h - OVERLAP;
-                setTimeout(spawn, 300);
-            }
-        } else {
-            let hoverY = H - 200;
-            if(game.tower.length) hoverY = game.tower[game.tower.length-1].y - 150;
-            
-            b.y += 600 * dt;
-            if(b.y >= hoverY) {
-                b.y = hoverY;
-                ask();
-            }
-        }
-    }
+    document.getElementById('hCount').innerText = state.tower.length;
+    document.getElementById('hScore').innerText = state.score;
 }
 
 function ask() {
-    game.wait = true;
-    const q = QS[game.qIdx % QS.length];
-    const qText = document.getElementById('qText');
-    const img = document.getElementById('qImg');
-    const aud = document.getElementById('qAudio');
-    const ansBox = document.getElementById('ansBox');
-    const inpBox = document.getElementById('inputBox');
+    state.curr.wait = true;
+    const q = DATA.qs[state.qIdx % DATA.qs.length];
     
+    document.getElementById('qText').innerText = q.q;
     document.getElementById('msg').innerText = "";
-    qText.innerText = q.q;
     
-    img.style.display = q.img ? 'block' : 'none';
-    if(q.img) img.src = q.img;
+    const im = document.getElementById('qImg');
+    if(q.img) { im.src=q.img; im.style.display='block'; } else im.style.display='none';
     
-    aud.style.display = q.audio ? 'block' : 'none';
-    if(q.audio) aud.src = q.audio; else aud.pause();
+    const au = document.getElementById('qAud');
+    if(q.audio) { au.src=q.audio; au.style.display='block'; } else { au.style.display='none'; au.pause(); }
 
-    ansBox.innerHTML = '';
+    const box = document.getElementById('ansBox'); box.innerHTML = "";
+    const inp = document.getElementById('inpBox');
+    
     if(q.type === 'choice') {
-        ansBox.style.display = 'grid'; inpBox.style.display = 'none';
-        ansBox.className = q.options.length > 4 ? 'ans-grid cols' : 'ans-grid';
-        q.options.forEach(opt => {
-            const btn = document.createElement('button');
-            btn.className = 'btn'; btn.innerText = opt;
-            btn.onclick = () => answer(opt === q.answer);
-            ansBox.appendChild(btn);
+        inp.style.display='none';
+        q.options.forEach(o => {
+            const b = document.createElement('button');
+            b.className = 'btn'; b.innerText = o;
+            b.onclick = () => answer(o === q.answer);
+            box.appendChild(b);
         });
     } else {
-        ansBox.style.display = 'none'; inpBox.style.display = 'block';
-        const inp = document.getElementById('ansInput');
-        inp.value = ''; inp.dataset.ans = q.answer; inp.focus();
+        inp.style.display='block';
+        document.getElementById('ansInp').value = "";
+        document.getElementById('ansInp').dataset.a = q.answer;
     }
-
+    
     document.getElementById('overlay').style.display = 'flex';
-    if(q.timer) startTimer(q.timer); else document.getElementById('timerWrap').style.display = 'none';
+    
+    if(q.timer) {
+        document.getElementById('timer').style.display='block';
+        let t = q.timer;
+        const b = document.getElementById('bar');
+        if(timerInt) clearInterval(timerInt);
+        timerInt = setInterval(()=>{
+            t -= 0.1; b.style.width = (t/q.timer*100)+'%';
+            if(t<=0) { clearInterval(timerInt); answer(false); }
+        }, 100);
+    } else document.getElementById('timer').style.display='none';
 }
 
-function startTimer(s) {
-    const bar = document.getElementById('timerBar');
-    const wrap = document.getElementById('timerWrap');
-    wrap.style.display = 'block'; bar.style.width = '100%';
-    let left = s;
-    if(timerInt) clearInterval(timerInt);
-    timerInt = setInterval(() => {
-        left -= 0.1;
-        bar.style.width = (left/s*100) + "%";
-        if(left <= 0) { clearInterval(timerInt); answer(false); }
-    }, 100);
-}
-
-function checkInput() {
-    const inp = document.getElementById('ansInput');
-    answer(inp.value.trim().toLowerCase() === inp.dataset.ans.trim().toLowerCase());
+function checkInp() {
+    const v = document.getElementById('ansInp').value.trim().toLowerCase();
+    const a = document.getElementById('ansInp').dataset.a.trim().toLowerCase();
+    answer(v === a);
 }
 
 function answer(win) {
     if(timerInt) clearInterval(timerInt);
-    document.getElementById('timerWrap').style.display = 'none';
-    const msg = document.getElementById('msg');
+    document.getElementById('timer').style.display='none';
+    const m = document.getElementById('msg');
     
     if(win) {
-        msg.innerText = "ВЕРНО!"; msg.style.color = "var(--good)";
-        setTimeout(() => { 
-            document.getElementById('overlay').style.display = 'none';
-            game.wait = false;
-            game.curr.drop = true;
+        m.innerText = "ВЕРНО!"; m.style.color = "var(--good)";
+        state.score += 100;
+        setTimeout(()=>{
+            document.getElementById('overlay').style.display='none';
+            state.curr.wait = false; 
+            state.curr.drop = true;
         }, 1000);
     } else {
-        msg.innerText = "ОШИБКА! БЛОК СГОРАЕТ..."; msg.style.color = "var(--bad)";
-        setTimeout(() => { 
-            document.getElementById('overlay').style.display = 'none';
-            // Запускаем процесс обугливания
-            game.curr.charring = true;
+        m.innerText = "ОШИБКА! Блок сгорает..."; m.style.color = "var(--bad)";
+        setTimeout(()=>{
+            document.getElementById('overlay').style.display='none';
+            // Start charring animation
+            state.curr.charring = true;
         }, 1500);
     }
-    game.qIdx++;
+    state.qIdx++;
 }
 
-// ОРИГИНАЛЬНЫЙ ВЗРЫВ
-function boom() {
-    const b = game.curr;
-    const cx = b.x + b.w/2;
-    const cy = b.y + b.h/2;
+// EXPLOSION FX (Original Style)
+function boom(x, y) {
+    state.rings.push({x, y, r:10, l:1});
+    for(let i=0; i<15; i++) state.smokes.push({x, y, vx:(Math.random()-.5)*5, vy:(Math.random()-.5)*5, l:1, r:10});
+    for(let i=0; i<30; i++) state.particles.push({x, y, vx:(Math.random()-.5)*15, vy:(Math.random()-.5)*15-5, l:1});
     
-    game.rings.push({x:cx, y:cy, rad:10, l:1});
-    for(let i=0; i<10; i++) game.smokes.push({x: cx, y: cy, vx: (Math.random()-0.5)*5, vy: (Math.random()-0.5)*5, l: 1, rad: 10});
-    for(let i=0; i<30; i++) game.particles.push({x: cx, y: cy, vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15 - 5, l: 1});
-    
-    game.curr = null;
-    game.wait = false;
-    game.blockIdx++; 
+    state.curr = null;
     setTimeout(spawn, 500);
 }
 
 function end(win) {
-    game.run = false;
-    document.getElementById('endScreen').classList.remove('hidden');
-    document.getElementById('endTitle').innerText = win ? "БАШНЯ ГОТОВА!" : "ФИНАЛ";
-    document.getElementById('finalScore').innerText = game.score;
+    state.run = false;
+    document.getElementById('end').classList.remove('hide');
+    document.getElementById('endTitle').innerText = win?"ПОБЕДА!":"ФИНАЛ";
+    document.getElementById('finalScore').innerText = state.score;
 }
 
 function loop() {
-    if(!game.run) return;
+    if(!state.run) return;
     requestAnimationFrame(loop);
-    update(0.016);
     
     ctx.clearRect(0,0,W,H);
     if(ASSETS.bg) {
@@ -327,36 +232,85 @@ function loop() {
         ctx.drawImage(ASSETS.bg, (W-ASSETS.bg.width*s)/2, (H-ASSETS.bg.height*s)/2, ASSETS.bg.width*s, ASSETS.bg.height*s);
     } else { ctx.fillStyle="#111"; ctx.fillRect(0,0,W,H); }
 
-    ctx.save();
-    ctx.translate(0, Math.round(game.offY));
-
-    game.tower.forEach(b => ctx.drawImage(b.img, Math.round(b.x), Math.round(b.y), b.w, b.h));
+    const groundY = H - 50;
     
-    if(game.curr) {
-        // Отрисовка блока
-        ctx.drawImage(game.curr.img, Math.round(game.curr.x), Math.round(game.curr.y), game.curr.w, game.curr.h);
+    // Camera logic
+    let targetCam = 0;
+    if(state.tower.length > 3) targetCam = state.tower.length * 50;
+    state.camY = state.camY * 0.9 + targetCam * 0.1;
+
+    ctx.save();
+    ctx.translate(0, Math.round(state.camY));
+
+    // Draw Tower
+    state.tower.forEach(b => ctx.drawImage(b.img, Math.round(b.x), Math.round(b.y), b.w, b.h));
+
+    // Draw Current
+    if(state.curr) {
+        const c = state.curr;
         
-        // Отрисовка обугливания (черный слой сверху)
-        if(game.curr.char > 0) {
-            ctx.globalCompositeOperation = "source-atop";
-            ctx.fillStyle = `rgba(0,0,0,${game.curr.char})`;
-            ctx.fillRect(game.curr.x, game.curr.y, game.curr.w, game.curr.h);
-            
-            // Красный жар
-            ctx.globalCompositeOperation = "lighter";
-            ctx.fillStyle = `rgba(255,100,50,${game.curr.char * 0.5})`;
-            ctx.fillRect(game.curr.x, game.curr.y, game.curr.w, game.curr.h);
-            
-            ctx.globalCompositeOperation = "source-over";
+        // Logic
+        if(c.charring) {
+            c.char += 0.02; // Char speed
+            if(c.char >= 1) boom(c.x+c.w/2, c.y+c.h/2);
+        } else if(!c.wait) {
+            if(c.drop) {
+                // Drop logic
+                let land = groundY;
+                if(state.tower.length) land = state.tower[state.tower.length-1].y - c.h + 5; // 5px OVERLAP
+                c.y += 15;
+                if(c.y >= land) {
+                    c.y = land;
+                    state.tower.push(c);
+                    state.curr = null;
+                    updHUD();
+                    setTimeout(spawn, 300);
+                }
+            } else {
+                // Descent logic
+                let hover = H - 200;
+                if(state.tower.length) hover = state.tower[state.tower.length-1].y - 120;
+                c.y += 8;
+                if(c.y >= hover) { c.y = hover; ask(); }
+            }
+        }
+
+        // Render Block + Char Effect
+        if(state.curr) { // Check again in case it boomed
+            ctx.drawImage(c.img, Math.round(c.x), Math.round(c.y), c.w, c.h);
+            if(c.char > 0) {
+                ctx.globalCompositeOperation = "source-atop";
+                ctx.fillStyle = `rgba(0,0,0,${c.char})`;
+                ctx.fillRect(c.x, c.y, c.w, c.h);
+                ctx.globalCompositeOperation = "lighter";
+                ctx.fillStyle = `rgba(255,100,50,${c.char*0.5})`;
+                ctx.fillRect(c.x, c.y, c.w, c.h);
+                ctx.globalCompositeOperation = "source-over";
+            }
         }
     }
 
-    game.smokes.forEach(s => { ctx.fillStyle = `rgba(50,50,50,${s.l*0.5})`; ctx.beginPath(); ctx.arc(s.x, s.y, s.rad, 0, Math.PI*2); ctx.fill(); });
-    game.rings.forEach(r => { ctx.strokeStyle = `rgba(255,255,255,${r.l})`; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(r.x, r.y, r.rad, 0, Math.PI*2); ctx.stroke(); });
-    game.particles.forEach(p => { ctx.fillStyle = `rgba(255,${Math.random()*150+100},50,${p.l})`; ctx.fillRect(p.x,p.y,5,5); });
+    // FX
+    state.smokes.forEach((s,i)=>{
+        s.y-=1; s.x+=s.vx; s.l-=0.01; s.r+=0.2;
+        ctx.fillStyle=`rgba(50,50,50,${s.l*0.5})`; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,7); ctx.fill();
+        if(s.l<=0) state.smokes.splice(i,1);
+    });
+    state.rings.forEach((r,i)=>{
+        r.r+=3; r.l-=0.03;
+        ctx.strokeStyle=`rgba(255,255,255,${r.l})`; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(r.x,r.y,r.r,0,7); ctx.stroke();
+        if(r.l<=0) state.rings.splice(i,1);
+    });
+    state.particles.forEach((p,i)=>{
+        p.x+=p.vx; p.y+=p.vy; p.l-=0.02;
+        ctx.fillStyle=`rgba(255,${Math.random()*150+100},50,${p.l})`; ctx.fillRect(p.x,p.y,5,5);
+        if(p.l<=0) state.particles.splice(i,1);
+    });
 
     ctx.restore();
-    ctx.fillStyle="#222"; ctx.fillRect(0, H-50+Math.round(game.offY), W, 50);
+    
+    // Floor (Static relative to cam)
+    ctx.fillStyle="#222"; ctx.fillRect(0, H-50+Math.round(state.camY), W, 50);
 }
 </script>
 </body>
