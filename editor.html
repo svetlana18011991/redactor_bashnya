@@ -38,31 +38,32 @@
         h1, h2, h3 { color: var(--gold); margin-top: 0; text-transform: uppercase; letter-spacing: 1px; }
         h1 { font-size: 20px; text-align: center; border-bottom: 1px solid var(--gold-dim); padding-bottom: 15px; }
 
-        label { display: block; margin-top: 12px; font-size: 13px; color: var(--gold); margin-bottom: 4px;}
+        label { display: block; margin-top: 15px; font-size: 13px; color: var(--gold); margin-bottom: 5px; font-weight: bold;}
         
-        /* Исправленные поля ввода */
-        input[type="text"], input[type="number"], textarea {
+        /* ГРУППА НАСТРОЕК */
+        .setting-group {
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 6px;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            margin-bottom: 10px;
+        }
+
+        /* Кнопки файлов */
+        .file-control { display: flex; align-items: center; gap: 10px; }
+        .status-text { font-size: 11px; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
+        
+        input[type="text"], input[type="number"], textarea, select {
             width: 100%;
-            background: rgba(255,255,255,0.9);
+            background: #fff;
             border: 1px solid var(--gold-dim);
             color: #000;
             padding: 8px;
             border-radius: 4px;
             box-sizing: border-box;
+            font-family: sans-serif;
         }
         
-        /* Исправленный выпадающий список */
-        select {
-            width: 100%;
-            padding: 8px;
-            background-color: white;
-            color: black;
-            border: 1px solid var(--gold-dim);
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        option { background-color: white; color: black; }
-
         /* СПИСОК ВОПРОСОВ */
         #qList { flex: 1; overflow-y: auto; margin: 20px 0; border-top: 1px solid rgba(255,215,0,0.2); padding-top: 10px; }
         .q-item {
@@ -93,12 +94,11 @@
             text-transform: uppercase;
             transition: 0.2s;
             width: 100%;
-            margin-top: 5px;
         }
         .btn:hover { filter: brightness(1.15); box-shadow: 0 0 10px var(--gold); }
         .btn-small { width: auto; padding: 5px 10px; font-size: 12px; }
         .btn-del { background: #ff4444; color: white; border: none; }
-        .btn-file { background: #444; color: white; border: 1px solid #666; font-size: 12px; text-transform: none;}
+        .btn-file { background: #444; color: white; border: 1px solid #666; font-size: 12px; text-transform: none; padding: 8px;}
 
         /* ПРАВАЯ ПАНЕЛЬ (ПРЕВЬЮ) */
         .preview-area {
@@ -135,9 +135,12 @@
         
         .media-row { display: flex; gap: 10px; align-items: center; margin-top: 5px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px;}
         .preview-mini { max-height: 40px; max-width: 40px; display: none; border: 1px solid #fff; }
-        
         .answer-row { display: flex; gap: 5px; align-items: center; margin-bottom: 5px; }
         .correct-radio { accent-color: var(--gold); transform: scale(1.5); cursor: pointer; }
+
+        /* CHECKBOX */
+        .chk-label { display: flex; align-items: center; gap: 10px; cursor: pointer; margin-top: 5px;}
+        .chk-input { transform: scale(1.5); accent-color: var(--gold); }
 
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #051024; }
@@ -149,17 +152,31 @@
 <div class="sidebar">
     <h1>🏗 Редактор Башни</h1>
     
-    <div>
+    <div class="setting-group">
         <label>🖼 Фон игры:</label>
-        <div class="media-row">
+        <div class="file-control">
             <input type="file" id="bgFile" accept="image/*" style="display:none" onchange="handleFile('bg', this)">
-            <button class="btn btn-file" onclick="document.getElementById('bgFile').click()">📂 Загрузить фон с ПК</button>
-            <span id="bgStatus" style="font-size:11px; color:#aaa;">По умолчанию</span>
+            <button class="btn btn-file" onclick="document.getElementById('bgFile').click()">📂 Загрузить фон</button>
+            <span id="bgStatus" class="status-text">По умолчанию</span>
         </div>
+
+        <label>🎵 Фоновая музыка:</label>
+        <div class="file-control">
+            <input type="file" id="musicFile" accept="audio/*" style="display:none" onchange="handleFile('music', this)">
+            <button class="btn btn-file" onclick="document.getElementById('musicFile').click()">📂 Загрузить MP3</button>
+            <span id="musicStatus" class="status-text">Нет</span>
+        </div>
+        
+        <label>🎲 Порядок вопросов:</label>
+        <select id="shuffleMode" onchange="updatePreview()">
+            <option value="false">По порядку (1, 2, 3...)</option>
+            <option value="true">Случайный (Перемешать)</option>
+        </select>
+        <small style="color:#aaa; font-size:10px;">Если вопросов < 9, они будут повторяться по кругу.</small>
     </div>
 
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 25px;">
-        <h3 style="margin:0; color:white;">Вопросы (<span id="qCount">0</span>/9)</h3>
+        <h3 style="margin:0; color:white;">Вопросы (<span id="qCount">0</span>)</h3>
         <button class="btn btn-small" style="width:auto; margin:0;" onclick="openModal()">+ ДОБАВИТЬ</button>
     </div>
 
@@ -167,12 +184,12 @@
 
     <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid #333;">
         <button class="btn" onclick="copyCode()" style="font-size: 16px; padding: 15px;">📋 СКОПИРОВАТЬ КОД</button>
-        <p style="font-size: 11px; color: #888; text-align: center; margin-top: 5px;">Нажми и вставь (Ctrl+V) в Genially (Insert -> Other)</p>
+        <p style="font-size: 11px; color: #888; text-align: center; margin-top: 5px;">Для вставки в Genially</p>
     </div>
 </div>
 
 <div class="preview-area">
-    <div class="preview-label">ПРЕДПРОСМОТР</div>
+    <div class="preview-label">LIVE PREVIEW</div>
     <iframe id="gameFrame"></iframe>
 </div>
 
@@ -191,25 +208,25 @@
 
         <label>Медиа (необязательно):</label>
         <div class="media-row">
-            <button class="btn btn-small btn-file" onclick="document.getElementById('mImgFile').click()">📷 Картинка</button>
+            <button class="btn btn-small btn-file" onclick="document.getElementById('mImgFile').click()">📷 Фото</button>
             <input type="file" id="mImgFile" accept="image/*" style="display:none" onchange="handleMediaPreview('img', this)">
             <img id="prevImg" class="preview-mini">
-            <span id="nameImg" style="font-size:10px; overflow:hidden; width:80px;">Нет</span>
+            <span id="nameImg" class="status-text" style="width:60px;">Нет</span>
             
             <div style="width:10px;"></div>
 
-            <button class="btn btn-small btn-file" onclick="document.getElementById('mAudioFile').click()">🎵 Музыка</button>
+            <button class="btn btn-small btn-file" onclick="document.getElementById('mAudioFile').click()">🎵 Звук</button>
             <input type="file" id="mAudioFile" accept="audio/*" style="display:none" onchange="handleMediaPreview('audio', this)">
-            <span id="nameAudio" style="font-size:10px; overflow:hidden; width:80px;">Нет</span>
+            <span id="nameAudio" class="status-text" style="width:60px;">Нет</span>
         </div>
 
         <div style="margin: 15px 0; padding: 10px; border: 1px solid var(--gold-dim); border-radius: 5px; background: rgba(0,0,0,0.2);">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <label style="margin:0; color:white; font-weight:bold;">⏱ Таймер вопроса</label>
+                <label style="margin:0; color:white; font-weight:bold;">⏱ Таймер (сек)</label>
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <input type="checkbox" id="mTimerInfo" style="width:auto; transform:scale(1.3);" onchange="toggleTimerField()">
+                    <input type="checkbox" id="mTimerInfo" class="chk-input" onchange="toggleTimerField()">
                     <span id="timerValBox" style="display:none;">
-                        <input type="number" id="mSeconds" value="15" style="width:60px; padding:4px;"> сек
+                        <input type="number" id="mSeconds" value="15" style="width:60px; padding:4px;">
                     </span>
                 </div>
             </div>
@@ -234,7 +251,8 @@
 <script>
     let questions = [];
     let editingId = null;
-    let customBgBase64 = null;
+    let customBg = null;
+    let customMusic = null;
     let tempMedia = { img: null, audio: null };
 
     // --- ФАЙЛЫ ---
@@ -244,11 +262,15 @@
         const reader = new FileReader();
         reader.onload = (e) => {
             if(type === 'bg') {
-                customBgBase64 = e.target.result;
+                customBg = e.target.result;
                 document.getElementById('bgStatus').innerText = "Загружен";
                 document.getElementById('bgStatus').style.color = "#0f0";
-                updatePreview();
+            } else if(type === 'music') {
+                customMusic = e.target.result;
+                document.getElementById('musicStatus').innerText = "Загружен";
+                document.getElementById('musicStatus').style.color = "#0f0";
             }
+            updatePreview();
         };
         reader.readAsDataURL(file);
     }
@@ -270,11 +292,9 @@
         reader.readAsDataURL(file);
     }
 
-    // --- МОДАЛКА ---
+    // --- UI ---
     function openModal(qData = null, index = null) {
         document.getElementById('modal').style.display = 'flex';
-        
-        // Сброс
         tempMedia = { img: null, audio: null };
         document.getElementById('prevImg').style.display = 'none';
         document.getElementById('nameImg').innerText = 'Нет';
@@ -321,15 +341,9 @@
     }
 
     function closeModal() { document.getElementById('modal').style.display = 'none'; }
-
-    function toggleTimerField() {
-        document.getElementById('timerValBox').style.display = 
-            document.getElementById('mTimerInfo').checked ? 'block' : 'none';
-    }
-
+    function toggleTimerField() { document.getElementById('timerValBox').style.display = document.getElementById('mTimerInfo').checked ? 'block' : 'none'; }
     function toggleAnsType() {
-        const type = document.getElementById('mType').value;
-        const isChoice = type === 'choice';
+        const isChoice = document.getElementById('mType').value === 'choice';
         document.getElementById('answersContainer').style.display = isChoice ? 'block' : 'none';
         document.getElementById('btnAddAns').style.display = isChoice ? 'inline-block' : 'none';
         document.getElementById('inputAnswerContainer').style.display = isChoice ? 'none' : 'block';
@@ -340,8 +354,8 @@
         div.className = 'answer-row';
         div.innerHTML = `
             <input type="radio" name="correctAns" class="correct-radio" ${isCorrect ? 'checked' : ''}>
-            <input type="text" class="ans-val" value="${val}" placeholder="Вариант ответа">
-            <button class="btn btn-small btn-del" onclick="this.parentElement.remove()" style="width:30px; margin-top:0;">×</button>
+            <input type="text" class="ans-val" value="${val}" placeholder="Ответ">
+            <button class="btn btn-small btn-del" onclick="this.parentElement.remove()" style="width:30px;">×</button>
         `;
         document.getElementById('answersContainer').appendChild(div);
     }
@@ -361,38 +375,32 @@
 
         if(type === 'choice') {
             const rows = document.querySelectorAll('.answer-row');
-            if(rows.length < 2) { alert("Нужно минимум 2 варианта ответа!"); return; }
+            if(rows.length < 2) { alert("Минимум 2 варианта!"); return; }
             newQ.options = [];
             let correctFound = false;
             rows.forEach(row => {
                 const val = row.querySelector('.ans-val').value.trim();
-                const isCorrect = row.querySelector('.correct-radio').checked;
                 if(val) {
                     newQ.options.push(val);
-                    if(isCorrect) { newQ.answer = val; correctFound = true; }
+                    if(row.querySelector('.correct-radio').checked) { newQ.answer = val; correctFound = true; }
                 }
             });
-            if(!correctFound) { alert("Выберите правильный вариант (нажмите кружок)!"); return; }
+            if(!correctFound) { alert("Отметьте правильный ответ!"); return; }
         } else {
             const ans = document.getElementById('mCorrectText').value.trim();
-            if(!ans) { alert("Введите правильный ответ!"); return; }
+            if(!ans) { alert("Укажите правильный ответ!"); return; }
             newQ.answer = ans;
         }
 
         if(editingId !== null) questions[editingId] = newQ;
-        else {
-            if(questions.length >= 9) { alert("Максимум 9 вопросов!"); return; }
-            questions.push(newQ);
-        }
+        else questions.push(newQ);
 
         closeModal();
         renderList();
         updatePreview();
     }
 
-    function deleteQ(index) {
-        if(confirm("Удалить вопрос?")) { questions.splice(index, 1); renderList(); updatePreview(); }
-    }
+    function deleteQ(index) { if(confirm("Удалить?")) { questions.splice(index, 1); renderList(); updatePreview(); } }
 
     function renderList() {
         const list = document.getElementById('qList');
@@ -402,13 +410,12 @@
             const div = document.createElement('div');
             div.className = 'q-item';
             let badges = [];
+            if(q.timer) badges.push('⏱');
             if(q.img) badges.push('📷');
-            if(q.audio) badges.push('🎵');
-            if(q.timer) badges.push(`⏱${q.timer}`);
             div.innerHTML = `
                 <div onclick="openModal(questions[${idx}], ${idx})" style="flex:1;">
                     <div style="font-weight:bold; color:white;">${idx+1}. ${q.q}</div>
-                    <div class="q-badges">${badges.map(b=>`<span class="badge">${b}</span>`).join('')}</div>
+                    <div class="q-badges">${badges.join(' ')}</div>
                 </div>
                 <button class="btn btn-small btn-del" style="width:30px; margin:0;" onclick="deleteQ(${idx})">🗑</button>
             `;
@@ -416,57 +423,43 @@
         });
     }
 
-    // --- ГЕНЕРАЦИЯ ---
+    // --- ПРЕВЬЮ И ЭКСПОРТ ---
     async function getFullGameCode() {
-        // Загружаем шаблон index.html
         const response = await fetch('./index.html');
         let html = await response.text();
-
-        // Формируем данные
-        const configScript = `
+        
+        const injectScript = `
         <script>
-        // --- INJECTED DATA ---
-        window.INJECTED_DATA = {
-            bg: "${customBgBase64 || ''}",
-            qs: ${JSON.stringify(questions)}
+        window.GAME_DATA = {
+            qs: ${JSON.stringify(questions)},
+            bg: "${customBg || ''}",
+            music: "${customMusic || ''}",
+            shuffle: ${document.getElementById('shuffleMode').value}
         };
         <\/script>
         `;
-
-        // Вставляем данные перед закрывающим body
-        return html.replace('</body>', configScript + '</body>');
+        
+        // Вставляем настройки ПЕРЕД любыми другими скриптами
+        return html.replace('<head>', '<head>' + injectScript);
     }
 
     async function updatePreview() {
-        if(questions.length === 0 && !customBgBase64) return;
+        if(questions.length === 0 && !customBg) return;
         const code = await getFullGameCode();
-        // Используем Blob для превью (обходит ограничение длины URL)
         const blob = new Blob([code], { type: 'text/html' });
         document.getElementById('gameFrame').src = URL.createObjectURL(blob);
     }
 
     async function copyCode() {
-        if(questions.length === 0) { alert("Сначала добавьте вопросы!"); return; }
-        
+        if(questions.length === 0) { alert("Добавьте вопросы!"); return; }
         const fullHtml = await getFullGameCode();
-        // Оборачиваем в iframe для вставки в Genially через "Insert -> Other"
-        // Используем srcdoc для максимальной совместимости с большим контентом
-        // Но Genially может требовать чистый iframe.
-        // Лучший способ: Data URI (но есть лимит). 
-        // Если код ОЧЕНЬ большой (картинки), data URI обрежется.
-        // Поэтому используем srcdoc.
-        
+        // Используем srcdoc для вставки "тяжелого" контента (картинки, музыка)
         const finalCode = `<iframe srcdoc='${fullHtml.replace(/'/g, "&apos;")}' width="100%" height="100%" style="width:100%;height:600px;border:none;"></iframe>`;
-
-        navigator.clipboard.writeText(finalCode).then(() => {
-            alert("✅ КОД СКОПИРОВАН!\n\n1. Иди в Genially.\n2. Нажми Insert -> Other.\n3. Вставь (Ctrl+V) и нажми Insert.");
-        }).catch(() => {
-            alert("Ошибка копирования. Код слишком большой?");
-        });
+        navigator.clipboard.writeText(finalCode).then(() => alert("✅ Код скопирован!"));
     }
     
-    // Инит
-    fetch('./index.html').then(()=>console.log("Template loaded")).catch(()=>alert("Ошибка: файл index.html не найден!"));
+    // Запуск пустой превьюшки
+    updatePreview();
 </script>
 </body>
 </html>
