@@ -174,26 +174,27 @@
         qs.forEach((q,i)=>{ const d=document.createElement('div'); d.className='q-item'; d.innerHTML=`<div onclick="openModal(qs[${i}],${i})" style="flex:1"><b>${i+1}.</b> ${q.q}</div><button class="btn btn-icon" onclick="deleteQ(${i})">🗑</button>`; l.appendChild(d); });
     }
 
-    async function getBase64Code() {
+    async function getCode() {
         const resp = await fetch('./index.html');
         if(!resp.ok) return null;
         let html = await resp.text();
         const cfg = { qs: qs, bg: assets.bg, music: assets.music, shuffle: document.getElementById('shuffleMode').value==='true' };
-        html = html.replace('<head>', `<head><script>window.GAME_CFG=${JSON.stringify(cfg)};<\/script>`);
-        return "data:text/html;charset=utf-8;base64," + btoa(unescape(encodeURIComponent(html)));
+        return html.replace('<head>', `<head><script>window.GAME_CFG=${JSON.stringify(cfg)};<\/script>`);
     }
 
     async function updatePreview() {
         if(!qs.length && !assets.bg) return;
-        const url = await getBase64Code();
-        if(url) document.getElementById('gameFrame').src = url;
+        const code = await getCode();
+        if(code) document.getElementById('gameFrame').srcdoc = code;
     }
 
     async function copyCode() {
         if(!qs.length) return alert("Добавьте вопросы!");
-        const url = await getBase64Code();
-        const code = `<iframe src="${url}" width="100%" height="600" style="border:none;" allow="autoplay"></iframe>`;
-        navigator.clipboard.writeText(code).then(()=>alert("✅ Код скопирован!"));
+        const code = await getCode();
+        // Base64 для надежной вставки
+        const b64 = "data:text/html;charset=utf-8;base64," + btoa(unescape(encodeURIComponent(code)));
+        const iframe = `<iframe src="${b64}" width="100%" height="600" style="border:none;" allow="autoplay"></iframe>`;
+        navigator.clipboard.writeText(iframe).then(()=>alert("✅ Код скопирован!"));
     }
     
     updatePreview();
