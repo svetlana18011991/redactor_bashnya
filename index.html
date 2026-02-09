@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Tower Game</title>
   <style>
-    body{margin:0;background:#051024;overflow:hidden;font-family:'Segoe UI',sans-serif;color:white;user-select:none;}
-    canvas{display:block;width:100%;height:100%;}
-    
-    /* Красивый интерфейс (как в v7.0) */
+    html,body{margin:0;padding:0;width:100%;height:100%;background:#051024;overflow:hidden;font-family:'Segoe UI',sans-serif;color:white;user-select:none;}
+    body{position:relative;}
+    canvas{position:fixed;inset:0;display:block;width:100vw;height:100vh;touch-action:none;}
+        /* Красивый интерфейс (как в v7.0) */
     #ui{position:absolute;top:15px;left:15px;right:15px;display:flex;justify-content:space-between;pointer-events:none;z-index:5;}
     .hud{background:rgba(0,0,0,0.6);padding:8px 20px;border-radius:30px;border:2px solid #FFD700;font-weight:bold;font-size:18px;text-shadow:0 2px 2px black;}
     
@@ -76,8 +76,60 @@ const audio = new Audio();
 const assets = { b: [], bg: null };
 
 // === ДВИЖОК ===
-function resize() { W=c.width=window.innerWidth; H=c.height=window.innerHeight; }
-window.onresize = resize; resize();
+let lastW = null, lastH = null;
+function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    const newW = Math.max(1, window.innerWidth);
+    const newH = Math.max(1, window.innerHeight);
+
+    // CSS size is handled by CSS (100vw/100vh). Here we set the drawing buffer.
+    c.width  = Math.round(newW * dpr);
+    c.height = Math.round(newH * dpr);
+    c.style.width = newW + "px";
+    c.style.height = newH + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // Store logical (CSS) size used by the game
+    W = newW; H = newH;
+
+    // If the viewport height changes (e.g., on mobile keyboard / Genially resize),
+    // keep the base of the tower glued to the ground instead of "sinking" off screen.
+    if (lastH !== null && game && (game.tower?.length || game.curr)) {
+        const groundY = H - 50;
+        let deltaY = 0;
+
+        if (game.tower && game.tower.length) {
+            const base = game.tower[0]; // first placed block sits on the ground
+            const desiredBaseY = groundY - base.h;
+            deltaY = desiredBaseY - base.y;
+
+            if (deltaY) {
+                game.tower.forEach(b => { b.y += deltaY; });
+                if (game.curr && game.curr.state !== 'drop') game.curr.y += deltaY;
+            }
+        } else if (game.curr && game.curr.state !== 'drop') {
+            // no tower yet, but a block may be waiting/falling — keep it aligned with the new ground
+            const desiredY = groundY - game.curr.h;
+            deltaY = desiredY - game.curr.y;
+            game.curr.y += deltaY;
+        }
+    }
+
+    // Recenter horizontally after width changes
+    if (lastW !== null && game) {
+        const cx = W / 2;
+        if (game.tower && game.tower.length) {
+            game.tower.forEach(b => { b.x = cx - b.w / 2; });
+        }
+        if (game.curr) {
+            game.curr.x = cx - game.curr.w / 2;
+        }
+    }
+
+    lastW = W; lastH = H;
+}
+window.addEventListener('resize', resize, { passive: true });
+resize();
 
 const load = (src) => new Promise(r => {
     if(!src) { r(null); return; }
