@@ -5,62 +5,47 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Башня знаний</title>
   <style>
-    :root{
-      --hud-bg: rgba(10, 12, 18, .55);
-      --panel-bg: rgba(20, 22, 30, .95);
-      --text: rgba(255,255,255,.92);
-      --gold: #FFD700;
-      --bad: #ff4444;
-      --good: #00C851;
-    }
-    html,body{height:100%;margin:0;font-family:system-ui,sans-serif;overflow:hidden;background:#000; color:white;}
+    :root{ --hud-bg: rgba(10, 12, 18, .7); --panel-bg: rgba(20, 22, 30, .95); --gold: #FFD700; --good: #00C851; --bad: #ff4444; }
+    html,body{height:100%;margin:0;font-family:system-ui,sans-serif;background:#000;color:white;overflow:hidden;}
     canvas{width:100%;height:100%;display:block;}
-
-    /* ТАЙМЕР */
-    #timerWrap { position: absolute; top: 0; left: 0; width: 100%; height: 8px; background: rgba(255,255,255,0.1); z-index: 20; display: none; }
-    #timerBar { height: 100%; width: 100%; background: linear-gradient(90deg, #ff9a9e 0%, #ff5252 100%); transition: width 1s linear; }
-
-    /* HUD */
-    #hud{ position:absolute; top:15px; left:15px; right:15px; display:flex; justify-content:space-between; pointer-events:none; z-index: 3; }
-    .pill{ background:var(--hud-bg); border:1px solid rgba(255,255,255,.2); border-radius:20px; padding:8px 15px; backdrop-filter: blur(5px); font-weight:bold; }
-
-    /* ВОПРОС */
-    #overlay{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 5; flex-direction: column;}
-    #card{ width: 90%; max-width: 500px; background: var(--panel-bg); border: 2px solid var(--gold); border-radius: 15px; padding: 25px; text-align: center; position: relative; box-shadow: 0 0 30px rgba(255, 215, 0, 0.2); }
     
-    #qImg { max-width: 100%; max-height: 200px; border-radius: 8px; margin-bottom: 15px; display: none; border: 1px solid #555; }
-    #qAudio { width: 100%; margin-bottom: 15px; display: none; }
+    #timerWrap { position: absolute; top:0; left:0; width:100%; height:8px; display:none; z-index:20; background:rgba(255,255,255,0.1); }
+    #timerBar { height:100%; width:100%; background: linear-gradient(90deg, #ff9a9e, #ff5252); transition: width 0.1s linear; }
     
-    #qText { font-size: 20px; margin-bottom: 20px; line-height: 1.4; color: var(--gold); font-weight: bold; }
+    #hud { position:absolute; top:15px; left:15px; right:15px; display:flex; justify-content:space-between; z-index:3; pointer-events:none; }
+    .pill { background:var(--hud-bg); border:1px solid rgba(255,255,255,0.2); border-radius:20px; padding:8px 15px; font-weight:bold; backdrop-filter:blur(5px); }
     
-    .answers-grid { display: grid; gap: 10px; grid-template-columns: 1fr; }
-    .answers-grid.two-col { grid-template-columns: 1fr 1fr; }
+    #overlay { position:absolute; inset:0; background:rgba(0,0,0,0.85); display:none; align-items:center; justify-content:center; z-index:10; flex-direction:column; backdrop-filter:blur(5px); }
+    #card { width:90%; max-width:500px; background:var(--panel-bg); border:2px solid var(--gold); border-radius:15px; padding:25px; text-align:center; box-shadow:0 0 40px rgba(255,215,0,0.2); max-height:90vh; overflow-y:auto; }
     
-    .btn { background: rgba(255,255,255,0.1); border: 1px solid var(--gold); color: white; padding: 12px; cursor: pointer; border-radius: 8px; transition: 0.2s; font-size: 16px; }
-    .btn:hover { background: var(--gold); color: black; }
+    #qImg { max-width:100%; max-height:200px; border-radius:8px; margin-bottom:15px; display:none; border:1px solid #555; }
+    #qAudio { width:100%; margin-bottom:15px; display:none; }
+    #qText { font-size:22px; color:var(--gold); font-weight:bold; margin-bottom:20px; line-height:1.3; }
     
-    input[type="text"] { width: 70%; padding: 10px; border-radius: 5px; border: 1px solid #555; background: #222; color: white; font-size: 16px; }
+    .ans-grid { display:grid; gap:10px; grid-template-columns:1fr; }
+    .ans-grid.cols { grid-template-columns:1fr 1fr; }
+    .btn { background:rgba(255,255,255,0.1); border:1px solid var(--gold); color:white; padding:12px; border-radius:8px; cursor:pointer; font-size:16px; transition:0.2s; }
+    .btn:hover { background:var(--gold); color:black; }
     
-    #msg { margin-top: 15px; font-weight: bold; min-height: 24px; }
-
-    /* ЭКРАНЫ */
-    #startScreen, #endScreen { position: absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.85); z-index:10; text-align:center;}
-    h1 { color: var(--gold); font-size: 40px; margin-bottom: 10px; text-shadow: 0 0 10px var(--gold); }
-    .big-btn { padding: 15px 40px; font-size: 20px; background: var(--gold); border: none; border-radius: 30px; cursor: pointer; font-weight: bold; margin-top: 20px; box-shadow: 0 0 15px var(--gold); transition: 0.3s; }
-    .big-btn:hover { transform: scale(1.05); }
-
-    .hidden { display: none !important; }
+    #inputBox { display:none; }
+    input[type=text] { width:70%; padding:10px; background:#222; border:1px solid #555; color:white; font-size:16px; border-radius:5px; }
+    
+    #msg { margin-top:15px; font-weight:bold; min-height:20px; }
+    
+    #startScreen, #endScreen { position:absolute; inset:0; background:rgba(0,0,0,0.9); z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+    h1 { color:var(--gold); font-size:40px; margin-bottom:10px; text-shadow:0 0 15px var(--gold); }
+    .big-btn { background:var(--gold); color:black; border:none; padding:15px 40px; font-size:20px; border-radius:30px; font-weight:bold; cursor:pointer; margin-top:20px; box-shadow:0 0 20px var(--gold); transition:0.3s; }
+    .big-btn:hover { transform:scale(1.05); }
+    .hidden { display:none !important; }
   </style>
 </head>
 <body>
 
 <div id="wrap">
   <canvas id="c"></canvas>
-  
   <div id="timerWrap"><div id="timerBar"></div></div>
-
   <div id="hud">
-    <div class="pill">Этаж: <span id="floorVal">0</span></div>
+    <div class="pill">Блоков: <span id="floorVal">0</span></div>
     <div class="pill">Счёт: <span id="scoreVal">0</span></div>
   </div>
 
@@ -68,345 +53,253 @@
     <div id="card">
       <img id="qImg">
       <audio id="qAudio" controls></audio>
-      <div id="qText">...</div>
-      
-      <div id="ansBox" class="answers-grid"></div>
-      
-      <div id="inputBox" class="hidden">
-        <input type="text" id="ansInput" placeholder="Ваш ответ...">
-        <button class="btn" onclick="checkInput()">ОК</button>
+      <div id="qText"></div>
+      <div id="ansBox" class="ans-grid"></div>
+      <div id="inputBox">
+        <input type="text" id="ansInput" placeholder="Ответ...">
+        <button class="btn" onclick="checkInput()">OK</button>
       </div>
-
       <div id="msg"></div>
     </div>
   </div>
 
   <div id="startScreen">
     <h1>БАШНЯ ЗНАНИЙ</h1>
-    <p style="color:#ccc; max-width:400px; line-height:1.5;">Строй башню, отвечая на вопросы.<br>Если таймер истечет или ответ неверный — блок взорвется!</p>
+    <p style="color:#ccc; max-width:400px;">Отвечай верно, чтобы построить башню.<br>Ошибешься — блок взорвется.</p>
     <button class="big-btn" onclick="startGame()">ИГРАТЬ</button>
   </div>
 
   <div id="endScreen" class="hidden">
-    <h1 id="endTitle">Игра окончена</h1>
+    <h1 id="endTitle">ФИНАЛ</h1>
     <p>Счёт: <b id="finalScore" style="color:var(--gold); font-size:24px;">0</b></p>
-    <button class="big-btn" onclick="location.reload()">ЕЩЕ РАЗ</button>
+    <button class="big-btn" onclick="location.reload()">ЗАНОВО</button>
   </div>
 </div>
 
 <script>
-// --- КОНФИГ ---
-const REPO_URL = "https://svetlana18011991.github.io/redactor_bashnya/";
-const BG_FILE = "1.png";
-const BLOCK_FILES = ["3.png","4.png","5.png","6.png","7.png","8.png","9.png","10.png","11.png"];
+// --- КОНФИГУРАЦИЯ ---
+const REPO = "https://svetlana18011991.github.io/redactor_bashnya/";
+const BLOCK_IMGS = ["3.png","4.png","5.png","6.png","7.png","8.png","9.png","10.png","11.png"];
+let QS = [{type:"choice",q:"2+2=?",options:["3","4","5"],answer:"4"}]; // Default
+let BG_SRC = REPO + "1.png";
 
-// Вопросы по умолчанию
-let QUESTIONS = [
-  { type:"choice", q:"2 + 2 = ?", options:["3","4","5"], answer:"4" }
-];
-let CUSTOM_BG = null;
+// ЧТЕНИЕ ВНЕДРЕННЫХ ДАННЫХ (ОТ РЕДАКТОРА)
+if(window.INJECTED_DATA) {
+    if(window.INJECTED_DATA.qs && window.INJECTED_DATA.qs.length) QS = window.INJECTED_DATA.qs;
+    if(window.INJECTED_DATA.bg) BG_SRC = window.INJECTED_DATA.bg;
+} else {
+    // Чтение из URL (старый метод для совместимости)
+    try {
+        const p = new URLSearchParams(location.search).get('data');
+        if(p) {
+            const d = JSON.parse(decodeURIComponent(escape(atob(p))));
+            if(d.qs) QS = d.qs;
+            if(d.bg) BG_SRC = d.bg;
+        }
+    } catch(e){}
+}
 
-// Чтение данных от редактора
-try {
-    const params = new URLSearchParams(window.location.search);
-    const data = params.get('data');
-    if(data) {
-        const json = decodeURIComponent(escape(atob(data)));
-        const config = JSON.parse(json);
-        if(config.qs && config.qs.length > 0) QUESTIONS = config.qs;
-        if(config.bg) CUSTOM_BG = config.bg;
-    }
-} catch(e) { console.log("Нет настроек, используем стандартные"); }
-
-// --- ДВИЖОК ИГРЫ ---
-const canvas = document.getElementById("c");
-const ctx = canvas.getContext("2d");
+// --- ДВИЖОК ---
+const cvs = document.getElementById("c"), ctx = cvs.getContext("2d");
 let W, H;
-function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; }
+const resize = ()=>{ W=cvs.width=window.innerWidth; H=cvs.height=window.innerHeight; };
 window.addEventListener("resize", resize); resize();
 
-// Загрузка
-function assetUrl(file) { 
-    if(file.startsWith("http") || file.startsWith("data:")) return file;
-    return REPO_URL + file; 
-}
-const loadImg = (src) => new Promise((r) => { const i=new Image(); i.onload=()=>r(i); i.src=src; });
-
-const state = {
-    running: false,
-    bg: null,
-    images: {},
-    tower: [],
-    current: null,
-    qIdx: 0,
-    score: 0,
-    waitingAnswer: false,
-    camY: 0,
-    particles: []
-};
+const ASSETS = { blocks: [], bg: null };
+const load = (src) => new Promise(r => { const i=new Image(); i.onload=()=>r(i); i.src=(src.includes('data:')||src.includes('http'))?src:REPO+src; });
 
 async function init() {
-    try {
-        state.bg = await loadImg(CUSTOM_BG || assetUrl(BG_FILE));
-        for(let f of BLOCK_FILES) state.images[f] = await loadImg(assetUrl(f));
-    } catch(e){ console.log("Ошибка загрузки картинок", e); }
+    ASSETS.bg = await load(BG_SRC);
+    for(let f of BLOCK_IMGS) ASSETS.blocks.push(await load(f));
 }
 init();
 
+const game = { run: false, tower: [], curr: null, score: 0, qIdx: 0, camY: 0, parts: [], wait: false };
+
 function startGame() {
     document.getElementById('startScreen').classList.add('hidden');
-    state.running = true;
-    state.tower = [];
-    state.score = 0;
-    state.qIdx = 0;
-    state.camY = 0;
-    updateHUD();
-    spawnBlock();
-    loop();
+    game.run = true; game.tower = []; game.score = 0; game.qIdx = 0; game.camY = 0;
+    updHUD(); spawn(); loop();
 }
 
-function spawnBlock() {
-    if(state.qIdx >= 9) { finishGame(true); return; } // Максимум 9 блоков
+function spawn() {
+    if(game.qIdx >= 9) { end(true); return; }
+    const img = ASSETS.blocks[Math.floor(Math.random()*ASSETS.blocks.length)];
     
-    const imgName = BLOCK_FILES[Math.floor(Math.random() * BLOCK_FILES.length)];
-    state.current = {
-        img: state.images[imgName],
-        x: W/2 - 50,
-        y: -100,
-        w: 100, h: 60,
-        speed: 300 + (state.tower.length * 20),
-        stopped: false
+    // ФИКС СКАЧКА: Инициализируем X сразу в позиции синусоиды для текущего времени
+    // Но для плавности просто ставим по центру и даем фазу 0
+    // Или лучше: используем startTime для синуса
+    
+    game.curr = {
+        img: img,
+        x: W/2 - 50, y: -100, w: 100, h: 60,
+        speed: 300 + (game.tower.length*20),
+        stop: false,
+        birth: Date.now() // для синхронизации
     };
-    state.waitingAnswer = false;
+    game.wait = false;
 }
 
-function updateHUD() {
-    document.getElementById('floorVal').innerText = state.tower.length;
-    document.getElementById('scoreVal').innerText = state.score;
+function updHUD() {
+    document.getElementById('floorVal').innerText = game.tower.length;
+    document.getElementById('scoreVal').innerText = game.score;
 }
 
-// Управление
-canvas.addEventListener('mousedown', stopBlock);
-canvas.addEventListener('touchstart', (e)=>{e.preventDefault(); stopBlock();}, {passive:false});
+// Input
+cvs.onmousedown = cvs.ontouchstart = (e) => { 
+    if(e.type==='touchstart') e.preventDefault();
+    if(game.run && game.curr && !game.curr.stop && !game.wait) {
+        game.curr.stop = true;
+        ask();
+    }
+};
 
-function stopBlock() {
-    if(!state.running || !state.current || state.waitingAnswer) return;
-    state.current.stopped = true;
-    showQuestion();
-}
-
-// --- СИСТЕМА ВОПРОСОВ ---
-let timerInterval = null;
-
-function showQuestion() {
-    state.waitingAnswer = true;
-    const qData = QUESTIONS[state.qIdx % QUESTIONS.length]; // Цикл если вопросов < 9
+// --- ВОПРОСЫ ---
+let timerInt = null;
+function ask() {
+    game.wait = true;
+    const q = QS[game.qIdx % QS.length];
     
     const card = document.getElementById('card');
     const qText = document.getElementById('qText');
-    const qImg = document.getElementById('qImg');
-    const qAudio = document.getElementById('qAudio');
+    const img = document.getElementById('qImg');
+    const aud = document.getElementById('qAudio');
     const ansBox = document.getElementById('ansBox');
-    const inputBox = document.getElementById('inputBox');
+    const inpBox = document.getElementById('inputBox');
     const msg = document.getElementById('msg');
 
-    // Сброс
     msg.innerText = "";
-    msg.style.color = "white";
-    ansBox.innerHTML = '';
-    qImg.style.display = 'none';
-    qAudio.style.display = 'none';
-    qAudio.pause();
-
-    // Заполнение
-    qText.innerText = qData.q;
+    qText.innerText = q.q;
     
-    if(qData.img) { qImg.src = qData.img; qImg.style.display = 'block'; }
-    if(qData.audio) { qAudio.src = qData.audio; qAudio.style.display = 'block'; }
+    img.style.display = q.img ? 'block' : 'none';
+    if(q.img) img.src = q.img;
+    
+    aud.style.display = q.audio ? 'block' : 'none';
+    if(q.audio) aud.src = q.audio; else aud.pause();
 
-    if(qData.type === 'choice') {
-        ansBox.style.display = 'grid';
-        inputBox.classList.add('hidden');
-        if(qData.options.length > 4) ansBox.className = 'answers-grid two-col';
-        else ansBox.className = 'answers-grid';
-
-        qData.options.forEach(opt => {
+    ansBox.innerHTML = '';
+    if(q.type === 'choice') {
+        ansBox.style.display = 'grid'; inpBox.style.display = 'none';
+        ansBox.className = q.options.length > 4 ? 'ans-grid cols' : 'ans-grid';
+        q.options.forEach(opt => {
             const btn = document.createElement('button');
-            btn.className = 'btn';
-            btn.innerText = opt;
-            btn.onclick = () => handleAnswer(opt === qData.answer);
+            btn.className = 'btn'; btn.innerText = opt;
+            btn.onclick = () => answer(opt === q.answer);
             ansBox.appendChild(btn);
         });
     } else {
-        ansBox.style.display = 'none';
-        inputBox.classList.remove('hidden');
-        document.getElementById('ansInput').value = '';
-        document.getElementById('ansInput').dataset.correct = qData.answer;
-        document.getElementById('ansInput').focus();
+        ansBox.style.display = 'none'; inpBox.style.display = 'block';
+        const inp = document.getElementById('ansInput');
+        inp.value = ''; inp.dataset.ans = q.answer; inp.focus();
     }
 
     document.getElementById('overlay').style.display = 'flex';
-
-    // Таймер
-    if(qData.timer) startTimer(qData.timer);
+    
+    if(q.timer) startTimer(q.timer);
     else document.getElementById('timerWrap').style.display = 'none';
 }
 
-function checkInput() {
-    const input = document.getElementById('ansInput');
-    const val = input.value.trim().toLowerCase();
-    const correct = input.dataset.correct.trim().toLowerCase();
-    handleAnswer(val === correct);
-}
-
-function startTimer(sec) {
+function startTimer(s) {
     const bar = document.getElementById('timerBar');
     const wrap = document.getElementById('timerWrap');
-    wrap.style.display = 'block';
-    bar.style.width = '100%';
-    
-    let left = sec;
-    if(timerInterval) clearInterval(timerInterval);
-    
-    timerInterval = setInterval(() => {
+    wrap.style.display = 'block'; bar.style.width = '100%';
+    let left = s;
+    if(timerInt) clearInterval(timerInt);
+    timerInt = setInterval(() => {
         left -= 0.1;
-        bar.style.width = (left / sec * 100) + "%";
-        if(left <= 0) {
-            clearInterval(timerInterval);
-            handleAnswer(false); // Время вышло
-        }
+        bar.style.width = (left/s*100) + "%";
+        if(left <= 0) { clearInterval(timerInt); answer(false); }
     }, 100);
 }
 
-function handleAnswer(isWin) {
-    if(timerInterval) clearInterval(timerInterval);
+function checkInput() {
+    const inp = document.getElementById('ansInput');
+    answer(inp.value.trim().toLowerCase() === inp.dataset.ans.trim().toLowerCase());
+}
+
+function answer(win) {
+    if(timerInt) clearInterval(timerInt);
+    document.getElementById('timerWrap').style.display = 'none';
     const msg = document.getElementById('msg');
     
-    if(isWin) {
-        msg.innerText = "ВЕРНО!";
-        msg.style.color = "var(--good)";
-        state.score += 100;
-        
-        // Успех - ставим блок
-        setTimeout(() => {
-            closeOverlay();
-            placeBlock();
-        }, 1000);
+    if(win) {
+        msg.innerText = "ВЕРНО!"; msg.style.color = "var(--good)";
+        game.score += 100;
+        setTimeout(() => { closeAsk(); drop(); }, 1000);
     } else {
-        msg.innerText = "ОШИБКА! БЛОК СГОРАЕТ";
-        msg.style.color = "var(--bad)";
-        
-        // Провал - взрыв
-        setTimeout(() => {
-            closeOverlay();
-            explodeBlock();
-        }, 1500);
+        msg.innerText = "НЕВЕРНО! Блок сгорает."; msg.style.color = "var(--bad)";
+        setTimeout(() => { closeAsk(); boom(); }, 1500);
     }
 }
 
-function closeOverlay() {
-    document.getElementById('overlay').style.display = 'none';
-    state.qIdx++;
-}
+function closeAsk() { document.getElementById('overlay').style.display = 'none'; game.qIdx++; }
 
-// --- ЛОГИКА БЛОКОВ ---
-function placeBlock() {
-    const b = state.current;
-    
-    // Ставим на предыдущий или на пол
+// --- ФИЗИКА ---
+function drop() {
+    const b = game.curr;
     let landY = H - 50;
-    if(state.tower.length > 0) landY = state.tower[state.tower.length-1].y;
-    
+    if(game.tower.length) landY = game.tower[game.tower.length-1].y;
     b.y = landY - b.h;
-    state.tower.push(b);
-    state.current = null;
-    
-    updateHUD();
-    
-    // Камера вверх
-    if(state.tower.length > 3) state.camY += 60;
-    
-    setTimeout(spawnBlock, 500);
+    game.tower.push(b);
+    game.curr = null;
+    updHUD();
+    if(game.tower.length > 3) game.camY += 60;
+    setTimeout(spawn, 500);
 }
 
-function explodeBlock() {
-    const b = state.current;
-    // Частицы
-    for(let i=0; i<20; i++) {
-        state.particles.push({
-            x: b.x + b.w/2, y: b.y + b.h/2,
-            vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10,
-            life: 1.0
-        });
-    }
-    state.current = null;
-    setTimeout(spawnBlock, 500);
+function boom() {
+    const b = game.curr;
+    for(let i=0; i<15; i++) game.parts.push({ x: b.x+b.w/2, y: b.y+b.h/2, vx:(Math.random()-0.5)*15, vy:(Math.random()-0.5)*15, life:1 });
+    game.curr = null;
+    setTimeout(spawn, 500);
 }
 
-function finishGame(win) {
-    state.running = false;
+function end(win) {
+    game.run = false;
     document.getElementById('endScreen').classList.remove('hidden');
-    document.getElementById('endTitle').innerText = win ? "БАШНЯ ПОСТРОЕНА!" : "ИГРА ОКОНЧЕНА";
-    document.getElementById('finalScore').innerText = state.score;
+    document.getElementById('endTitle').innerText = win ? "ПОБЕДА!" : "ФИНАЛ";
+    document.getElementById('finalScore').innerText = game.score;
 }
 
-// --- ОТРИСОВКА ---
 function loop() {
-    if(!state.running) return;
+    if(!game.run) return;
     requestAnimationFrame(loop);
-    
     ctx.clearRect(0,0,W,H);
     
-    // Фон
-    if(state.bg) {
-        // Рисуем фон с "cover" эффектом
-        const scale = Math.max(W/state.bg.width, H/state.bg.height);
-        const bw = state.bg.width * scale;
-        const bh = state.bg.height * scale;
-        ctx.drawImage(state.bg, (W-bw)/2, (H-bh)/2, bw, bh);
-    } else {
-        ctx.fillStyle = "#111"; ctx.fillRect(0,0,W,H);
-    }
-    
+    // BG
+    if(ASSETS.bg) {
+        const s = Math.max(W/ASSETS.bg.width, H/ASSETS.bg.height);
+        ctx.drawImage(ASSETS.bg, (W-ASSETS.bg.width*s)/2, (H-ASSETS.bg.height*s)/2, ASSETS.bg.width*s, ASSETS.bg.height*s);
+    } else { ctx.fillStyle="#111"; ctx.fillRect(0,0,W,H); }
+
     ctx.save();
-    ctx.translate(0, state.camY);
+    ctx.translate(0, game.camY);
 
-    // Башня
-    state.tower.forEach(b => {
-        ctx.drawImage(b.img, b.x, b.y, b.w, b.h);
-    });
+    game.tower.forEach(b => ctx.drawImage(b.img, b.x, b.y, b.w, b.h));
 
-    // Текущий блок
-    if(state.current) {
-        const b = state.current;
-        if(!b.stopped) {
-            // Движение маятником
-            b.x = (W/2 - b.w/2) + Math.sin(Date.now()/300) * (W/2 - 50);
+    if(game.curr) {
+        const b = game.curr;
+        if(!b.stop) {
+            // Исправленная формула без скачка (используем разницу времени)
+            // Центр экрана (W/2) - половина блока (b.w/2) + синус
+            b.x = (W/2 - b.w/2) + Math.sin((Date.now())/300) * (W/2 - 60);
             
-            // Расчет Y (где он летит)
-            // Он летит над башней
-            let targetY = H - 150; 
-            if(state.tower.length > 0) targetY = state.tower[state.tower.length-1].y - 150;
-            
-            // Плавное приближение (просто для визуала)
-            b.y = targetY;
+            // Летит над башней
+            let targetY = H - 150;
+            if(game.tower.length) targetY = game.tower[game.tower.length-1].y - 150;
+            b.y += (targetY - b.y) * 0.1; // Плавный подлет по Y
         }
         ctx.drawImage(b.img, b.x, b.y, b.w, b.h);
     }
-    
-    // Взрывы
-    state.particles.forEach((p,i) => {
-        p.x += p.vx; p.y += p.vy; p.life -= 0.05;
-        ctx.fillStyle = `rgba(255,100,50,${p.life})`;
-        ctx.fillRect(p.x, p.y, 5, 5);
-        if(p.life <= 0) state.particles.splice(i,1);
+
+    game.parts.forEach((p,i) => {
+        p.x+=p.vx; p.y+=p.vy; p.life-=0.05;
+        ctx.fillStyle=`rgba(255,100,50,${p.life})`; ctx.fillRect(p.x,p.y,6,6);
+        if(p.life<=0) game.parts.splice(i,1);
     });
 
     ctx.restore();
-    
-    // Пол (Фундамент)
-    ctx.fillStyle = "#222";
-    ctx.fillRect(0, H-50 + state.camY, W, 50);
+    ctx.fillStyle="#222"; ctx.fillRect(0, H-50+game.camY, W, 50);
 }
 </script>
 </body>
