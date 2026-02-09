@@ -18,7 +18,8 @@
     #overlay{position:absolute;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:10;flex-direction:column;}
     #card{width:90%;max-width:450px;background:#1a1c24;border:2px solid var(--gold);border-radius:15px;padding:25px;text-align:center;box-shadow:0 0 30px rgba(255,215,0,.2);max-height:90vh;overflow-y:auto;}
     
-    .btn{background:rgba(255,255,255,.1);border:1px solid var(--gold);color:#fff;padding:12px;border-radius:8px;cursor:pointer;font-size:16px;margin:5px 0;width:100%;transition:.2s;}
+    .ans-grid{display:grid;gap:10px;}
+    .btn{background:rgba(255,255,255,.1);border:1px solid var(--gold);color:#fff;padding:12px;border-radius:8px;cursor:pointer;font-size:16px;width:100%;transition:.2s;}
     .btn:hover{background:var(--gold);color:#000;}
     
     #qImg{max-width:100%;max-height:180px;margin-bottom:15px;border-radius:5px;display:none;margin:0 auto 10px;}
@@ -35,7 +36,7 @@
   <canvas id="c"></canvas>
   <div id="timer"><div id="bar"></div></div>
   <div id="hud">
-    <div class="pill">Этаж: <span id="hCount">0</span>/9</div>
+    <div class="pill">Блоков: <span id="hCount">0</span>/9</div>
     <div class="pill">Счет: <span id="hScore">0</span></div>
   </div>
 
@@ -43,7 +44,7 @@
     <div id="card">
       <img id="qImg"> <audio id="qAud" controls></audio>
       <div id="qText" style="font-size:20px;margin-bottom:15px;color:var(--gold);font-weight:bold;"></div>
-      <div id="ansBox"></div>
+      <div id="ansBox" class="ans-grid"></div>
       <div id="inpBox" style="display:none;margin-top:10px;">
         <input type="text" id="ansInp" style="width:70%;padding:10px;border-radius:5px;border:none;" placeholder="Ответ...">
         <button class="btn" style="width:auto;margin-top:10px;" onclick="checkInp()">OK</button>
@@ -63,16 +64,16 @@
     <p>Счет: <b id="finalScore">0</b></p>
     <button class="big-btn" onclick="location.reload()">ЗАНОВО</button>
   </div>
-  
   <audio id="bgMusic" loop></audio>
 </div>
 
 <script>
-// CONFIG
+// --- GLOBAL ---
 const REPO = "https://svetlana18011991.github.io/redactor_bashnya/";
 const IMGS = ["3.png","4.png","5.png","6.png","7.png","8.png","9.png","10.png","11.png"];
-let DATA = { qs: [{type:'choice',q:'2+2?',options:['3','4'],answer:'4'}], bg: REPO+"1.png", music: null, shuffle: false };
+let DATA = { qs: [{type:'choice',q:'Пример вопроса?',options:['1','2'],answer:'1'}], bg: null, music: null, shuffle: false };
 
+// --- CONFIG LOADING ---
 if(window.GAME_CFG) DATA = window.GAME_CFG;
 else {
     try {
@@ -86,14 +87,28 @@ let W, H;
 const resize = () => { W=cvs.width=window.innerWidth; H=cvs.height=window.innerHeight; };
 window.addEventListener('resize', resize); resize();
 
+// --- ASSETS ---
 const ASSETS = { b: [], bg: null };
-const loadImg = src => new Promise(r => { const i=new Image(); i.onload=()=>r(i); i.onerror=()=>r(null); i.src=(src.indexOf('data:')===0?src:REPO+src); });
+// Безопасная загрузка (если src == null, ничего не делаем или грузим дефолт)
+const loadImg = src => new Promise(r => { 
+    if(!src) { r(null); return; }
+    // Если это не base64, добавляем путь к репозиторию
+    const fullSrc = src.startsWith('data:') ? src : REPO + src;
+    const i=new Image(); 
+    i.onload=()=>r(i); 
+    i.onerror=()=>{ console.log("Err loading:", fullSrc); r(null); }; 
+    i.src=fullSrc; 
+});
 
 async function init() {
-    ASSETS.bg = await loadImg(DATA.bg);
-    for(let f of IMGS) ASSETS.b.push(await loadImg(f));
+    // Если фона нет в настройках, берем 1.png из репозитория
+    ASSETS.bg = await loadImg(DATA.bg || "1.png");
+    for(let f of IMGS) {
+        const img = await loadImg(f);
+        if(img) ASSETS.b.push(img);
+    }
     
-    if(DATA.shuffle) {
+    if(DATA.shuffle && DATA.qs.length) {
         for(let i=DATA.qs.length-1; i>0; i--) {
             const j = Math.floor(Math.random()*(i+1));
             [DATA.qs[i], DATA.qs[j]] = [DATA.qs[j], DATA.qs[i]];
@@ -102,8 +117,9 @@ async function init() {
 }
 init();
 
+// --- STATE ---
 let state = { run: false, tower: [], curr: null, score: 0, qIdx: 0, camY: 0, particles: [], rings: [], smokes: [] };
-let timerInt = null;
+let timerInt = null; // ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ (Fix ReferenceError)
 
 function startGame() {
     document.getElementById('start').classList.add('hide');
@@ -114,8 +130,11 @@ function startGame() {
 
 function spawn() {
     if(state.tower.length >= 9) return end(true);
+    // Если картинки не прогрузились, используем заглушку, чтобы не было ошибки undefined
+    if(ASSETS.b.length === 0) { console.error("No block images!"); return; }
+    
     const img = ASSETS.b[state.tower.length % ASSETS.b.length];
-    const scale = 0.6; // Фиксированный масштаб, как просили
+    const scale = 0.6; 
     
     state.curr = {
         img, w: img.width*scale, h: img.height*scale,
@@ -130,6 +149,7 @@ function updHUD() {
 }
 
 function ask() {
+    if(!DATA.qs || !DATA.qs.length) return; // Защита
     state.curr.wait = true;
     const q = DATA.qs[state.qIdx % DATA.qs.length];
     
@@ -189,14 +209,13 @@ function answer(win) {
         state.score += 100;
         setTimeout(()=>{
             document.getElementById('overlay').style.display='none';
-            state.curr.wait = false; 
-            state.curr.drop = true;
+            if(state.curr) { state.curr.wait = false; state.curr.drop = true; }
         }, 1000);
     } else {
         m.innerText = "ОШИБКА! Блок сгорает..."; m.style.color = "var(--bad)";
         setTimeout(()=>{
             document.getElementById('overlay').style.display='none';
-            state.curr.charring = true;
+            if(state.curr) state.curr.charring = true;
         }, 1500);
     }
     state.qIdx++;
@@ -248,7 +267,7 @@ function loop() {
         } else if(!c.wait) {
             if(c.drop) {
                 let land = groundY;
-                if(state.tower.length) land = state.tower[state.tower.length-1].y - c.h + 5; // Нахлест 5px
+                if(state.tower.length) land = state.tower[state.tower.length-1].y - c.h + 5; 
                 c.y += 15;
                 if(c.y >= land) {
                     c.y = land;
