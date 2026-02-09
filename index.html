@@ -34,9 +34,8 @@
 <div id="wrap">
   <canvas id="c"></canvas>
   <div id="timer"><div id="bar"></div></div>
-  
   <div id="hud">
-    <div class="pill">Блоков: <span id="hCount">0</span>/9</div>
+    <div class="pill">Этаж: <span id="hCount">0</span>/9</div>
     <div class="pill">Счет: <span id="hScore">0</span></div>
   </div>
 
@@ -74,7 +73,6 @@ const REPO = "https://svetlana18011991.github.io/redactor_bashnya/";
 const IMGS = ["3.png","4.png","5.png","6.png","7.png","8.png","9.png","10.png","11.png"];
 let DATA = { qs: [{type:'choice',q:'2+2?',options:['3','4'],answer:'4'}], bg: REPO+"1.png", music: null, shuffle: false };
 
-// LOAD CONFIG (Inject or URL)
 if(window.GAME_CFG) DATA = window.GAME_CFG;
 else {
     try {
@@ -117,12 +115,12 @@ function startGame() {
 function spawn() {
     if(state.tower.length >= 9) return end(true);
     const img = ASSETS.b[state.tower.length % ASSETS.b.length];
-    const scale = Math.min(300/img.width, (H-200)/(9*img.height)); // Auto scale
+    const scale = 0.6; // Фиксированный масштаб, как просили
     
     state.curr = {
         img, w: img.width*scale, h: img.height*scale,
-        x: W/2 - (img.width*scale)/2, y: -150,
-        wait: false, drop: false, char: 0 // Charring level
+        x: W/2 - (img.width*scale)/2, y: -200,
+        wait: false, drop: false, char: 0
     };
 }
 
@@ -198,19 +196,17 @@ function answer(win) {
         m.innerText = "ОШИБКА! Блок сгорает..."; m.style.color = "var(--bad)";
         setTimeout(()=>{
             document.getElementById('overlay').style.display='none';
-            // Start charring animation
             state.curr.charring = true;
         }, 1500);
     }
     state.qIdx++;
 }
 
-// EXPLOSION FX (Original Style)
+// FX
 function boom(x, y) {
     state.rings.push({x, y, r:10, l:1});
     for(let i=0; i<15; i++) state.smokes.push({x, y, vx:(Math.random()-.5)*5, vy:(Math.random()-.5)*5, l:1, r:10});
     for(let i=0; i<30; i++) state.particles.push({x, y, vx:(Math.random()-.5)*15, vy:(Math.random()-.5)*15-5, l:1});
-    
     state.curr = null;
     setTimeout(spawn, 500);
 }
@@ -234,30 +230,25 @@ function loop() {
 
     const groundY = H - 50;
     
-    // Camera logic
     let targetCam = 0;
-    if(state.tower.length > 3) targetCam = state.tower.length * 50;
+    if(state.tower.length > 3) targetCam = (state.tower.length-2) * 50;
     state.camY = state.camY * 0.9 + targetCam * 0.1;
 
     ctx.save();
     ctx.translate(0, Math.round(state.camY));
 
-    // Draw Tower
     state.tower.forEach(b => ctx.drawImage(b.img, Math.round(b.x), Math.round(b.y), b.w, b.h));
 
-    // Draw Current
     if(state.curr) {
         const c = state.curr;
         
-        // Logic
         if(c.charring) {
-            c.char += 0.02; // Char speed
+            c.char += 0.02;
             if(c.char >= 1) boom(c.x+c.w/2, c.y+c.h/2);
         } else if(!c.wait) {
             if(c.drop) {
-                // Drop logic
                 let land = groundY;
-                if(state.tower.length) land = state.tower[state.tower.length-1].y - c.h + 5; // 5px OVERLAP
+                if(state.tower.length) land = state.tower[state.tower.length-1].y - c.h + 5; // Нахлест 5px
                 c.y += 15;
                 if(c.y >= land) {
                     c.y = land;
@@ -267,7 +258,6 @@ function loop() {
                     setTimeout(spawn, 300);
                 }
             } else {
-                // Descent logic
                 let hover = H - 200;
                 if(state.tower.length) hover = state.tower[state.tower.length-1].y - 120;
                 c.y += 8;
@@ -275,8 +265,7 @@ function loop() {
             }
         }
 
-        // Render Block + Char Effect
-        if(state.curr) { // Check again in case it boomed
+        if(state.curr) {
             ctx.drawImage(c.img, Math.round(c.x), Math.round(c.y), c.w, c.h);
             if(c.char > 0) {
                 ctx.globalCompositeOperation = "source-atop";
@@ -290,7 +279,6 @@ function loop() {
         }
     }
 
-    // FX
     state.smokes.forEach((s,i)=>{
         s.y-=1; s.x+=s.vx; s.l-=0.01; s.r+=0.2;
         ctx.fillStyle=`rgba(50,50,50,${s.l*0.5})`; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,7); ctx.fill();
@@ -308,8 +296,6 @@ function loop() {
     });
 
     ctx.restore();
-    
-    // Floor (Static relative to cam)
     ctx.fillStyle="#222"; ctx.fillRect(0, H-50+Math.round(state.camY), W, 50);
 }
 </script>
