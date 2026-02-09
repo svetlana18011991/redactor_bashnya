@@ -30,12 +30,14 @@
     h1{font-size:40px;color:#FFD700;margin:0 0 10px;text-transform:uppercase;letter-spacing:2px;}
     .big-btn{background:#FFD700;color:black;border:none;padding:15px 50px;font-size:22px;border-radius:50px;font-weight:bold;cursor:pointer;margin-top:30px;box-shadow:0 0 30px rgba(255,215,0,0.4);transition:0.3s;}
     .big-btn:hover{transform:scale(1.1);}
+    .big-btn:disabled{background:#555;color:#888;cursor:wait;transform:none;box-shadow:none;}
     
     #ver { position: absolute; bottom: 5px; left: 5px; font-size: 10px; color: #555; pointer-events: none; }
+    #loader { color: #FFD700; margin-top: 10px; font-size: 14px; }
   </style>
 </head>
 <body>
-  <div id="ver">v11.0 (REPO FIX)</div>
+  <div id="ver">v12.0 (LOADER)</div>
   <div id="timerBar"></div>
   
   <div id="ui">
@@ -59,13 +61,14 @@
   <div id="screen">
     <h1 id="title">БАШНЯ</h1>
     <p id="desc" style="color:#aaa;max-width:300px;line-height:1.5;">Построй башню за 9 ходов.<br>Ошибка = блок сгорает.</p>
-    <button class="big-btn" onclick="startGame()">ИГРАТЬ</button>
+    <button id="startBtn" class="big-btn" onclick="startGame()" disabled>ЗАГРУЗКА...</button>
+    <div id="loader"></div>
   </div>
 
 <script>
 // === КОНФИГУРАЦИЯ ===
-// Жесткая ссылка на репозиторий, чтобы картинки всегда находились
 const REPO = "https://svetlana18011991.github.io/redactor_bashnya/";
+// Список имен файлов, которые нужно загрузить (3.png - это первый блок)
 const IMGS = ["3.png","4.png","5.png","6.png","7.png","8.png","9.png","10.png","11.png"];
 let DATA = { qs: [{type:'choice',q:'2+2?',options:['3','4'],answer:'4'}], bg: null, music: null, shuffle: false };
 
@@ -76,6 +79,7 @@ const ctx = c.getContext('2d');
 let W, H;
 let timerInt = null;
 const audio = new Audio();
+// assets.b будет хранить объекты картинок
 const assets = { b: [], bg: null };
 
 // === ДВИЖОК ===
@@ -93,7 +97,7 @@ function resize() {
 
     W = newW; H = newH;
 
-    // Удержание башни на земле при ресайзе
+    // Удержание физики при ресайзе
     if (lastH !== null && game && (game.tower?.length || game.curr)) {
         const groundY = H - 50;
         let deltaY = 0;
@@ -129,27 +133,66 @@ function resize() {
 window.addEventListener('resize', resize, { passive: true });
 resize();
 
-// Загрузчик с правильным путем
-const load = (src) => new Promise(r => {
-    if(!src) { r(null); return; }
+// Функция загрузки с индикацией
+const load = (name) => new Promise(resolve => {
+    // Если это base64 или полный путь - используем как есть. 
+    // Если просто имя файла (3.png) - добавляем REPO.
+    let src = name.startsWith('data:') || name.startsWith('http') ? name : REPO + name;
+    
     const img = new Image();
     img.crossOrigin = "Anonymous";
-    img.onload = () => r(img);
-    img.onerror = () => { console.error("Failed to load:", src); r(null); };
-    // Если это base64 (из редактора) - берем как есть
-    // Если это имя файла (1.png) - добавляем путь к репо
-    img.src = src.startsWith('data:') ? src : (src.startsWith('http') ? src : REPO + src);
+    
+    img.onload = () => {
+        resolve({ ok: true, img: img });
+    };
+    
+    img.onerror = () => {
+        console.warn("Failed remote, trying local:", name);
+        // Попытка загрузить локально (если REPO не сработал)
+        if(src.startsWith('http')) {
+            const localImg = new Image();
+            localImg.onload = () => resolve({ ok: true, img: localImg });
+            localImg.onerror = () => {
+                console.error("Failed completely:", name);
+                resolve({ ok: false, src: name }); // Возвращаем имя файла при ошибке
+            };
+            // Пробуем просто имя файла (относительный путь)
+            localImg.src = name.split('/').pop(); 
+        } else {
+            resolve({ ok: false, src: name });
+        }
+    };
+    
+    img.src = src;
 });
 
 async function init() {
-    // Фон: если в редакторе не задан, грузим 1.png с репозитория
-    assets.bg = await load(DATA.bg || "1.png");
+    const loader = document.getElementById('loader');
+    const startBtn = document.getElementById('startBtn');
     
-    // Блоки: грузим 3.png ... 11.png
-    for(let f of IMGS) { 
-        const img = await load(f); 
-        if(img) assets.b.push(img); 
+    // 1. Грузим фон
+    loader.innerText = "Загрузка фона...";
+    const bgRes = await load(DATA.bg || "1.png");
+    if(bgRes.ok) assets.bg = bgRes.img;
+    
+    // 2. Грузим блоки
+    let loadedCount = 0;
+    for(let f of IMGS) {
+        loader.innerText = `Загрузка блоков: ${loadedCount}/${IMGS.length}`;
+        const res = await load(f);
+        if(res.ok) {
+            assets.b.push(res.img);
+        } else {
+            // Если ошибка, пушим объект-заглушку с именем файла
+            assets.b.push({ error: true, name: f });
+        }
+        loadedCount++;
     }
+    
+    loader.innerText = "";
+    startBtn.disabled = false;
+    startBtn.innerText = "ИГРАТЬ";
+    startBtn.style.cursor = "pointer";
     
     if(DATA.shuffle && DATA.qs.length) {
         for(let i=DATA.qs.length-1; i>0; i--) {
@@ -172,28 +215,35 @@ function startGame() {
 function spawn() {
     if(game.attempt >= 9) { endGame(); return; }
     
+    // Берем блок из массива assets.b
+    // assets.b[0] соответствует 3.png
     const imgIdx = game.attempt % (assets.b.length || 1);
-    const img = assets.b.length ? assets.b[imgIdx] : null;
+    const asset = assets.b.length ? assets.b[imgIdx] : null;
     
+    // Расчет размеров
     const maxH = (H - 250) / 9; 
     let scale = 0.6;
-    if(img && img.height * scale > maxH) {
-        scale = maxH / img.height;
+    let w=120, h=60;
+    let imgObj = null;
+    let errorName = null;
+
+    if(asset && !asset.error) {
+        imgObj = asset;
+        if(imgObj.height * scale > maxH) scale = maxH / imgObj.height;
+        w = imgObj.width * scale;
+        h = imgObj.height * scale;
+    } else if (asset && asset.error) {
+        errorName = asset.name;
     }
 
     game.curr = {
-        img: img, 
-        w: 120, h: 60, 
-        x: W/2 - 60, y: -200, 
+        img: imgObj,
+        error: errorName, // Имя файла если ошибка
+        w: w, h: h, 
+        x: W/2 - w/2, y: -200, 
         state: 'drop',
         char: 0, shake: 0
     };
-    
-    if(img) {
-        game.curr.w = img.width * scale;
-        game.curr.h = img.height * scale;
-        game.curr.x = W/2 - game.curr.w/2;
-    }
 }
 
 function endGame() {
@@ -239,11 +289,8 @@ function update() {
             }
         }
         else if(b.state === 'burn') {
-            // Эффект сгорания (тряска + почернение)
             b.char += 0.015;
             b.shake = (Math.random()-0.5) * 10;
-            
-            // Дым
             if(Math.random()>0.6) {
                 game.smokes.push({
                     x: b.x + Math.random()*b.w, 
@@ -252,14 +299,10 @@ function update() {
                     life: 1, size: 5+Math.random()*10
                 });
             }
-
-            if(b.char >= 1) {
-                boom(); 
-            }
+            if(b.char >= 1) boom(); 
         }
     }
 
-    // Частицы
     for(let i=game.particles.length-1; i>=0; i--) {
         let p = game.particles[i];
         p.x+=p.vx; p.y+=p.vy; p.life-=0.02;
@@ -277,20 +320,23 @@ function updUI() {
     document.getElementById('hScore').innerText = game.score;
 }
 
-function drawStoneBlock(x,y,w,h){
-  // Запасной вариант, если картинка не прогрузилась (камень)
-  ctx.fillStyle = "#888";
+// Рисует заглушку, если картинки нет
+function drawErrorBlock(x,y,w,h,name){
+  ctx.fillStyle = "#444";
   ctx.fillRect(x, y, w, h);
-  ctx.strokeStyle = "#555";
+  ctx.strokeStyle = "red";
   ctx.lineWidth = 2;
   ctx.strokeRect(x, y, w, h);
+  ctx.fillStyle = "white";
+  ctx.font = "12px sans-serif";
+  ctx.fillText("Err: " + (name || "?"), x+5, y+20);
 }
 
 function draw() {
     ctx.clearRect(0,0,W,H);
     
     // Фон
-    if(assets.bg) {
+    if(assets.bg && !assets.bg.error) {
         const sc = Math.max(W/assets.bg.width, H/assets.bg.height);
         ctx.drawImage(assets.bg, (W-assets.bg.width*sc)/2, (H-assets.bg.height*sc)/2, assets.bg.width*sc, assets.bg.height*sc);
     } else { ctx.fillStyle="#112"; ctx.fillRect(0,0,W,H); }
@@ -302,7 +348,7 @@ function draw() {
     // Башня
     game.tower.forEach(b => {
         if(b.img) ctx.drawImage(b.img, b.x, b.y, b.w, b.h);
-        else drawStoneBlock(b.x,b.y,b.w,b.h);
+        else drawErrorBlock(b.x,b.y,b.w,b.h, b.error);
     });
 
     // Текущий блок
@@ -311,16 +357,14 @@ function draw() {
         const dx = b.x + (b.state === 'burn' ? b.shake : 0);
         
         if(b.img) ctx.drawImage(b.img, dx, b.y, b.w, b.h);
-        else drawStoneBlock(dx,b.y,b.w,b.h);
+        else drawErrorBlock(dx,b.y,b.w,b.h, b.error);
 
-        // ОТРИСОВКА СГОРАНИЯ (Эффект)
+        // Эффект сгорания
         if(b.state === 'burn') {
-            // Обугливание
             ctx.globalCompositeOperation = "source-atop";
             ctx.fillStyle = `rgba(0,0,0,${b.char * 0.9})`; 
             ctx.fillRect(dx, b.y, b.w, b.h);
             
-            // Жар
             ctx.globalCompositeOperation = "lighter";
             ctx.fillStyle = `rgba(255, 100, 0, ${b.char * 0.6})`;
             ctx.fillRect(dx, b.y, b.w, b.h);
@@ -329,13 +373,11 @@ function draw() {
         }
     }
 
-    // Дым
     game.smokes.forEach(s => {
         ctx.fillStyle=`rgba(80,80,80,${s.life*0.6})`;
         ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, 7); ctx.fill();
     });
 
-    // Взрыв
     game.particles.forEach(p => {
         ctx.fillStyle=p.color; ctx.globalAlpha=p.life;
         ctx.fillRect(p.x, p.y, p.size, p.size);
