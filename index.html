@@ -68,12 +68,10 @@
 </div>
 
 <script>
-// --- GLOBAL ---
 const REPO = "https://svetlana18011991.github.io/redactor_bashnya/";
 const IMGS = ["3.png","4.png","5.png","6.png","7.png","8.png","9.png","10.png","11.png"];
 let DATA = { qs: [{type:'choice',q:'Пример вопроса?',options:['1','2'],answer:'1'}], bg: null, music: null, shuffle: false };
 
-// --- CONFIG LOADING ---
 if(window.GAME_CFG) DATA = window.GAME_CFG;
 else {
     try {
@@ -87,345 +85,15 @@ let W, H;
 const resize = () => { W=cvs.width=window.innerWidth; H=cvs.height=window.innerHeight; };
 window.addEventListener('resize', resize); resize();
 
-// --- ASSETS ---
 const ASSETS = { b: [], bg: null };
 const loadImg = src => new Promise(r => { 
     if(!src) { r(null); return; }
     const fullSrc = src.startsWith('data:') ? src : REPO + src;
     const i=new Image(); 
+    i.crossOrigin = "Anonymous"; // Fix for canvas pollution
     i.onload=()=>r(i); 
-    i.onerror=()=>{ console.log("Err loading:", fullSrc); r(null); }; 
+    i.onerror=()=>{ console.log("Skip:", fullSrc); r(null); }; 
     i.src=fullSrc; 
-});
-
-async function init() {
-    ASSETS.bg = await loadImg(DATA.bg || "1.png");
-    for(let f of IMGS) {
-        const img = await loadImg(f);
-        if(img) ASSETS.b.push(img);
-    }
-    
-    if(DATA.shuffle && DATA.qs.length) {
-        for(let i=DATA.qs.length-1; i>0; i--) {
-            const j = Math.floor(Math.random()*(i+1));
-            [DATA.qs[i], DATA.qs[j]] = [DATA.qs[j], DATA.qs[i]];
-        }
-    }
-}
-init();
-
-// --- STATE ---
-let state = { run: false, tower: [], curr: null, score: 0, qIdx: 0, camY: 0, particles: [], rings: [], smokes: [] };
-let timerInt = null;
-
-function startGame() {
-    document.getElementById('start').classList.add('hide');
-    if(DATA.music) { const a=document.getElementById('bgMusic'); a.src=DATA.music; a.volume=0.3; a.play().catch(()=>{}); }
-    state.run = true; state.tower = []; state.score = 0; state.qIdx = 0; state.camY = 0;
-    updHUD(); spawn(); loop();
-}
-
-function spawn() {
-    if(state.tower.length >= 9) return end(true);
-    if(ASSETS.b.length === 0) { console.error("No block images!"); return; }
-    
-    const img = ASSETS.b[state.tower.length % ASSETS.b.length];
-    const scale = 0.6; 
-    
-    state.curr = {
-        img, w: img.width*scale, h: img.height*scale,
-        x: W/2 - (img.width*scale)/2, y: -200,
-        wait: false, drop: false, char: 0
-    };
-}
-
-function updHUD() {
-    document.getElementById('hCount').innerText = state.tower.length;
-    document.getElementById('hScore').innerText = state.score;
-}
-
-function ask() {
-    if(!DATA.qs || !DATA.qs.length) return;
-    state.curr.wait = true;
-    const q = DATA.qs[state.qIdx % DATA.qs.length];
-    
-    document.getElementById('qText').innerText = q.q;
-    document.getElementById('msg').innerText = "";
-    
-    const im = document.getElementById('qImg');
-    if(q.img) { im.src=q.img; im.style.display='block'; } else im.style.display='none';
-    
-    const au = document.getElementById('qAud');
-    if(q.audio) { au.src=q.audio; au.style.display='block'; } else { au.style.display='none'; au.pause(); }
-
-    const box = document.getElementById('ansBox'); box.innerHTML = "";
-    const inp = document.getElementById('inpBox');
-    
-    if(q.type === 'choice') {
-        inp.style.display='none';
-        q.options.forEach(o => {
-            const b = document.createElement('button');
-            b.className = 'btn'; b.innerText = o;
-            b.onclick = () => answer(o === q.answer);
-            box.appendChild(b);
-        });
-    } else {
-        inp.style.display='block';
-        document.getElementById('ansInp').value = "";
-        document.getElementById('ansInp').dataset.a = q.answer;
-    }
-    
-    document.getElementById('overlay').style.display = 'flex';
-    
-    if(q.timer) {
-        document.getElementById('timer').style.display='block';
-        let t = q.timer;
-        const b = document.getElementById('bar');
-        if(timerInt) clearInterval(timerInt);
-        timerInt = setInterval(()=>{
-            t -= 0.1; b.style.width = (t/q.timer*100)+'%';
-            if(t<=0) { clearInterval(timerInt); answer(false); }
-        }, 100);
-    } else document.getElementById('timer').style.display='none';
-}
-
-function checkInp() {
-    const v = document.getElementById('ansInp').value.trim().toLowerCase();
-    const a = document.getElementById('ansInp').dataset.a.trim().toLowerCase();
-    answer(v === a);
-}
-
-function answer(win) {
-    if(timerInt) clearInterval(timerInt);
-    document.getElementById('timer').style.display='none';
-    const m = document.getElementById('msg');
-    
-    if(win) {
-        m.innerText = "ВЕРНО!"; m.style.color = "var(--good)";
-        state.score += 100;
-        setTimeout(()=>{
-            document.getElementById('overlay').style.display='none';
-            if(state.curr) { state.curr.wait = false; state.curr.drop = true; }
-        }, 1000);
-    } else {
-        m.innerText = "ОШИБКА! Блок сгорает..."; m.style.color = "var(--bad)";
-        setTimeout(()=>{
-            document.getElementById('overlay').style.display='none';
-            if(state.curr) state.curr.charring = true; // Start charring effect
-        }, 1500);
-    }
-    state.qIdx++;
-}
-
-// FX
-function boom(x, y) {
-    state.rings.push({x, y, r:10, l:1});
-    for(let i=0; i<15; i++) state.smokes.push({x, y, vx:(Math.random()-.5)*5, vy:(Math.random()-.5)*5, l:1, r:10});
-    for(let i=0; i<30; i++) state.particles.push({x, y, vx:(Math.random()-.5)*15, vy:(Math.random()-.5)*15-5, l:1});
-    state.curr = null;
-    setTimeout(spawn, 500);
-}
-
-function end(win) {
-    state.run = false;
-    document.getElementById('end').classList.remove('hide');
-    document.getElementById('endTitle').innerText = win?"ПОБЕДА!":"ФИНАЛ";
-    document.getElementById('finalScore').innerText = state.score;
-}
-
-function loop() {
-    if(!state.run) return;
-    requestAnimationFrame(loop);
-    
-    ctx.clearRect(0,0,W,H);
-    if(ASSETS.bg) {
-        const s = Math.max(W/ASSETS.bg.width, H/ASSETS.bg.height);
-        ctx.drawImage(ASSETS.bg, (W-ASSETS.bg.width*s)/2, (H-ASSETS.bg.height*s)/2, ASSETS.bg.width*s, ASSETS.bg.height*s);
-    } else { ctx.fillStyle="#111"; ctx.fillRect(0,0,W,H); }
-
-    const groundY = H - 50;
-    
-    let targetCam = 0;
-    if(state.tower.length > 3) targetCam = (state.tower.length-2) * 50;
-    state.camY = state.camY * 0.9 + targetCam * 0.1;
-
-    ctx.save();
-    ctx.translate(0, Math.round(state.camY));
-
-    state.tower.forEach(b => ctx.drawImage(b.img, Math.round(b.x), Math.round(b.y), b.w, b.h));
-
-    if(state.curr) {
-        const c = state.curr;
-        
-        if(c.charring) {
-            c.char += 0.015; // Slower charring for better effect
-            if(c.char >= 1) boom(c.x+c.w/2, c.y+c.h/2);
-        } else if(!c.wait) {
-            if(c.drop) {
-                // FIX: Calculate landing based on BOTTOM of the falling block
-                let targetBottomY = groundY; 
-                if(state.tower.length > 0) targetBottomY = state.tower[state.tower.length-1].y + 5; // 5px overlap
-                
-                let landY = targetBottomY - c.h; // Target Y for the top of the block
-
-                c.y += 15;
-                if(c.y >= landY) {
-                    c.y = landY;
-                    state.tower.push(c);
-                    state.curr = null;
-                    updHUD();
-                    setTimeout(spawn, 300);
-                }
-            } else {
-                let hover = H - 200;
-                if(state.tower.length) hover = state.tower[state.tower.length-1].y - 120;
-                c.y += 8;
-                if(c.y >= hover) { c.y = hover; ask(); }
-            }
-        }
-
-        if(state.curr) {
-            ctx.drawImage(c.img, Math.round(c.x), Math.round(c.y), c.w, c.h);
-            // CHARRING EFFECT (Original style)
-            if(c.char > 0) {
-                ctx.globalCompositeOperation = "source-atop";
-                ctx.fillStyle = `rgba(0,0,0,${c.char})`;
-                ctx.fillRect(c.x, c.y, c.w, c.h);
-                ctx.globalCompositeOperation = "lighter";
-                ctx.fillStyle = `rgba(255,100,50,${c.char*0.5})`;
-                ctx.fillRect(c.x, c.y, c.w, c.h);
-                ctx.globalCompositeOperation = "source-over";
-            }
-        }
-    }
-
-    state.smokes.forEach((s,i)=>{
-        s.y-=1; s.x+=s.vx; s.l-=0.01; s.r+=0.2;
-        ctx.fillStyle=`rgba(50,50,50,${s.l*0.5})`; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,7); ctx.fill();
-        if(s.l<=0) state.smokes.splice(i,1);
-    });
-    state.rings.forEach((r,i)=>{
-        r.r+=3; r.l-=0.03;
-        ctx.strokeStyle=`rgba(255,255,255,${r.l})`; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(r.x,r.y,r.r,0,7); ctx.stroke();
-        if(r.l<=0) state.rings.splice(i,1);
-    });
-    state.particles.forEach((p,i)=>{
-        p.x+=p.vx; p.y+=p.vy; p.l-=0.02;
-        ctx.fillStyle=`rgba(255,${Math.random()*150+100},50,${p.l})`; ctx.fillRect(p.x,p.y,5,5);
-        if(p.l<=0) state.particles.splice(i,1);
-    });
-
-    ctx.restore();
-    ctx.fillStyle="#222"; ctx.fillRect(0, H-50+Math.round(state.camY), W, 50);
-}
-</script>
-</body>
-</html>Я понял. Эффект «проседания» башни возникает из-за слишком плавной камеры, которая медленно ползет вниз после каждого хода, создавая ощущение, что башня тонет. А красный прямоугольник — это действительно лишний слой анимации, который я убрал.
-
-Вот исправленный файл **`index.html`**.
-
-**Что исправлено:**
-
-1. **Убрано «проседание»:** Камера теперь стоит жестко. Она сдвигается вверх только тогда, когда башня реально вырастает выше комфортного уровня, и делает это быстро, а не «плывет» полчаса.
-2. **Эффект сгорания:** Убрал красный мигающий прямоугольник. Теперь блок просто **чернеет** (обугливается), идет дым, и потом происходит взрыв. Как в оригинале.
-3. **Физика:** Блоки стоят «намертво», с нахлестом, без щелей.
-
-Замените код в `index.html` целиком. `editor.html` трогать не нужно, он у вас уже правильный.
-
-```html
-<!doctype html>
-<html lang="ru">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Башня знаний</title>
-  <style>
-    :root{ --hud: rgba(10,12,18,.7); --gold: #FFD700; --good: #00C851; --bad: #ff4444; }
-    html,body{height:100%;margin:0;font-family:sans-serif;background:#000;color:#fff;overflow:hidden;}
-    canvas{width:100%;height:100%;display:block;image-rendering:pixelated;}
-    
-    #timer{position:absolute;top:0;left:0;width:100%;height:8px;background:rgba(255,255,255,.1);display:none;z-index:20;}
-    #bar{height:100%;width:100%;background:linear-gradient(90deg,#ff9a9e,#ff5252);transition:width .1s linear;}
-    
-    #hud{position:absolute;top:15px;left:15px;right:15px;display:flex;justify-content:space-between;z-index:5;pointer-events:none;}
-    .pill{background:var(--hud);padding:8px 16px;border-radius:20px;border:1px solid rgba(255,255,255,.2);font-weight:bold;backdrop-filter:blur(5px);}
-    
-    #overlay{position:absolute;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:10;flex-direction:column;}
-    #card{width:90%;max-width:450px;background:#1a1c24;border:2px solid var(--gold);border-radius:15px;padding:25px;text-align:center;box-shadow:0 0 30px rgba(255,215,0,.2);max-height:90vh;overflow-y:auto;}
-    
-    .ans-grid{display:grid;gap:10px;}
-    .btn{background:rgba(255,255,255,.1);border:1px solid var(--gold);color:#fff;padding:12px;border-radius:8px;cursor:pointer;font-size:16px;width:100%;transition:.2s;}
-    .btn:hover{background:var(--gold);color:#000;}
-    
-    #qImg{max-width:100%;max-height:180px;margin-bottom:15px;border-radius:5px;display:none;margin:0 auto 10px;}
-    #qAud{width:100%;margin-bottom:10px;display:none;}
-    
-    #start, #end{position:absolute;inset:0;background:#000;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
-    .big-btn{background:var(--gold);color:#000;border:none;padding:15px 40px;font-size:20px;border-radius:30px;font-weight:bold;cursor:pointer;margin-top:20px;}
-    .hide{display:none !important;}
-  </style>
-</head>
-<body>
-
-<div id="wrap">
-  <canvas id="c"></canvas>
-  <div id="timer"><div id="bar"></div></div>
-  <div id="hud">
-    <div class="pill">Блоков: <span id="hCount">0</span>/9</div>
-    <div class="pill">Счет: <span id="hScore">0</span></div>
-  </div>
-
-  <div id="overlay">
-    <div id="card">
-      <img id="qImg"> <audio id="qAud" controls></audio>
-      <div id="qText" style="font-size:20px;margin-bottom:15px;color:var(--gold);font-weight:bold;"></div>
-      <div id="ansBox" class="ans-grid"></div>
-      <div id="inpBox" style="display:none;margin-top:10px;">
-        <input type="text" id="ansInp" style="width:70%;padding:10px;border-radius:5px;border:none;" placeholder="Ответ...">
-        <button class="btn" style="width:auto;margin-top:10px;" onclick="checkInp()">OK</button>
-      </div>
-      <div id="msg" style="margin-top:15px;font-weight:bold;min-height:20px;"></div>
-    </div>
-  </div>
-
-  <div id="start">
-    <h1 style="color:var(--gold);font-size:40px;">БАШНЯ ЗНАНИЙ</h1>
-    <p style="color:#aaa;">Построй башню из 9 блоков.<br>Ошибешься - блок сгорит.</p>
-    <button class="big-btn" onclick="startGame()">НАЧАТЬ</button>
-  </div>
-
-  <div id="end" class="hide">
-    <h1 id="endTitle" style="color:var(--gold)">ФИНАЛ</h1>
-    <p>Счет: <b id="finalScore">0</b></p>
-    <button class="big-btn" onclick="location.reload()">ЗАНОВО</button>
-  </div>
-  <audio id="bgMusic" loop></audio>
-</div>
-
-<script>
-// --- CONFIG ---
-const REPO = "https://svetlana18011991.github.io/redactor_bashnya/";
-const IMGS = ["3.png","4.png","5.png","6.png","7.png","8.png","9.png","10.png","11.png"];
-let DATA = { qs: [{type:'choice',q:'Пример вопроса?',options:['1','2'],answer:'1'}], bg: null, music: null, shuffle: false };
-
-if(window.GAME_CFG) DATA = window.GAME_CFG;
-else {
-    try {
-        const p = new URLSearchParams(location.search).get('data');
-        if(p) { const d=JSON.parse(decodeURIComponent(escape(atob(p)))); if(d.qs) DATA.qs=d.qs; if(d.bg) DATA.bg=d.bg; }
-    }catch(e){}
-}
-
-const cvs = document.getElementById('c'), ctx = cvs.getContext('2d');
-let W, H;
-const resize = () => { W=cvs.width=window.innerWidth; H=cvs.height=window.innerHeight; };
-window.addEventListener('resize', resize); resize();
-
-const ASSETS = { b: [], bg: null };
-const loadImg = src => new Promise(r => { 
-    if(!src) { r(null); return; }
-    const fullSrc = src.startsWith('data:') ? src : REPO + src;
-    const i=new Image(); i.onload=()=>r(i); i.onerror=()=>r(null); i.src=fullSrc; 
 });
 
 async function init() {
@@ -449,14 +117,21 @@ function startGame() {
 
 function spawn() {
     if(state.tower.length >= 9) return end(true);
-    if(!ASSETS.b.length) return;
     
-    const img = ASSETS.b[state.tower.length % ASSETS.b.length];
-    const scale = 0.6; 
+    // Fallback if images missing
+    const useImg = ASSETS.b.length > 0;
+    const imgIdx = state.tower.length % (useImg ? ASSETS.b.length : 1);
+    const img = useImg ? ASSETS.b[imgIdx] : null;
+    
+    // Scale logic
+    let w=100, h=60;
+    if(img) { 
+        const scale = 0.6; w=img.width*scale; h=img.height*scale; 
+    }
     
     state.curr = {
-        img, w: img.width*scale, h: img.height*scale,
-        x: W/2 - (img.width*scale)/2, y: -200,
+        img, w, h,
+        x: W/2 - w/2, y: -200,
         wait: false, drop: false, char: 0
     };
 }
@@ -498,6 +173,7 @@ function ask() {
     }
     
     document.getElementById('overlay').style.display = 'flex';
+    
     if(q.timer) {
         document.getElementById('timer').style.display='block';
         let t = q.timer;
@@ -538,6 +214,7 @@ function answer(win) {
     state.qIdx++;
 }
 
+// FX
 function boom(x, y) {
     state.rings.push({x, y, r:10, l:1});
     for(let i=0; i<15; i++) state.smokes.push({x, y, vx:(Math.random()-.5)*5, vy:(Math.random()-.5)*5, l:1, r:10});
@@ -563,46 +240,34 @@ function loop() {
         ctx.drawImage(ASSETS.bg, (W-ASSETS.bg.width*s)/2, (H-ASSETS.bg.height*s)/2, ASSETS.bg.width*s, ASSETS.bg.height*s);
     } else { ctx.fillStyle="#111"; ctx.fillRect(0,0,W,H); }
 
-    // FIXED FLOOR POSITION
     const groundY = H - 50;
     
-    // CAMERA LOGIC (Stable)
     let targetCam = 0;
-    // Поднимаем камеру только если башня высокая (выше 4 блоков)
-    if(state.tower.length > 4) {
-        // Считаем высоту башни
-        const towerH = state.tower.length * 60; // примерно 60px на блок
-        targetCam = towerH - 200; 
-    }
-    // Плавный доводчик, но не "желейный"
-    state.camY = state.camY * 0.95 + targetCam * 0.05;
+    if(state.tower.length > 3) targetCam = (state.tower.length-2) * 50;
+    state.camY = state.camY * 0.9 + targetCam * 0.1;
 
     ctx.save();
     ctx.translate(0, Math.round(state.camY));
 
-    // Draw Tower (Снизу вверх)
-    state.tower.forEach(b => ctx.drawImage(b.img, Math.round(b.x), Math.round(b.y), b.w, b.h));
+    // DRAW TOWER
+    state.tower.forEach((b, i) => {
+        if(b.img) ctx.drawImage(b.img, Math.round(b.x), Math.round(b.y), b.w, b.h);
+        else { ctx.fillStyle = `hsl(${i*40},70%,50%)`; ctx.fillRect(b.x, b.y, b.w, b.h); }
+    });
 
+    // DRAW CURRENT
     if(state.curr) {
         const c = state.curr;
         
         if(c.charring) {
-            c.char += 0.01;
-            // Добавляем дым пока горит
-            if(Math.random()>0.8) state.smokes.push({x:c.x+Math.random()*c.w,y:c.y+Math.random()*c.h,vx:(Math.random()-.5)*2,vy:-2,l:1,r:5});
+            c.char += 0.015; 
             if(c.char >= 1) boom(c.x+c.w/2, c.y+c.h/2);
         } else if(!c.wait) {
             if(c.drop) {
-                // Расчет точки остановки (НИЖНИЙ КРАЙ БЛОКА)
-                let landY = groundY - c.h; // По умолчанию на пол
-                
-                if(state.tower.length > 0) {
-                    const topBlock = state.tower[state.tower.length-1];
-                    // Сажаем на предыдущий блок + нахлест 5px
-                    landY = topBlock.y - c.h + 5;
-                }
-
-                c.y += 20; // Скорость падения
+                // FIXED LANDING
+                let landY = groundY - c.h;
+                if(state.tower.length > 0) landY = state.tower[state.tower.length-1].y - c.h + 5;
+                c.y += 15;
                 if(c.y >= landY) {
                     c.y = landY;
                     state.tower.push(c);
@@ -611,21 +276,17 @@ function loop() {
                     setTimeout(spawn, 300);
                 }
             } else {
-                // Спуск сверху
-                let hoverY = H - 250;
-                // Если башня высокая, спускаем блок так, чтобы он висел над ней
-                if(state.tower.length > 0) {
-                    hoverY = state.tower[state.tower.length-1].y - 150;
-                }
-                
+                let hover = H - 250;
+                if(state.tower.length > 0) hover = state.tower[state.tower.length-1].y - 120;
                 c.y += 10;
-                if(c.y >= hoverY) { c.y = hoverY; ask(); }
+                if(c.y >= hover) { c.y = hover; ask(); }
             }
         }
 
         if(state.curr) {
-            ctx.drawImage(c.img, Math.round(c.x), Math.round(c.y), c.w, c.h);
-            // CHARRING (BLACK ONLY)
+            if(c.img) ctx.drawImage(c.img, Math.round(c.x), Math.round(c.y), c.w, c.h);
+            else { ctx.fillStyle = "#aaa"; ctx.fillRect(c.x, c.y, c.w, c.h); }
+            
             if(c.char > 0) {
                 ctx.globalCompositeOperation = "source-atop";
                 ctx.fillStyle = `rgba(0,0,0,${c.char})`;
@@ -635,6 +296,7 @@ function loop() {
         }
     }
 
+    // DRAW FX
     state.smokes.forEach((s,i)=>{
         s.y-=1; s.x+=s.vx; s.l-=0.01; s.r+=0.2;
         ctx.fillStyle=`rgba(50,50,50,${s.l*0.5})`; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,7); ctx.fill();
@@ -652,12 +314,7 @@ function loop() {
     });
 
     ctx.restore();
-    
-    // ПОЛ (Двигается вместе с камерой)
-    ctx.fillStyle="#222"; 
-    // Рисуем пол всегда внизу экрана относительно МИРА, но камера его сдвигает
-    // H-50 - это координата пола в мире.
-    ctx.fillRect(0, groundY + Math.round(state.camY), W, 50);
+    ctx.fillStyle="#222"; ctx.fillRect(0, H-50+Math.round(state.camY), W, 50);
 }
 </script>
 </body>
