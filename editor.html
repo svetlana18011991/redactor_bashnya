@@ -5,142 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Golden Tower Editor</title>
     <style>
-        :root {
-            --bg-color: #051024;
-            --panel-bg: #0b1a36;
-            --gold: #FFD700;
-            --gold-dim: #b89b00;
-            --text: #ffffff;
-        }
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text);
-            margin: 0;
-            height: 100vh;
-            display: flex;
-            overflow: hidden;
-        }
+        :root { --bg: #051024; --panel: #0b1a36; --gold: #FFD700; --gold-dim: #b89b00; --text: #fff; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; height: 100vh; display: flex; overflow: hidden; }
         
-        /* ЛЕВАЯ ПАНЕЛЬ */
-        .sidebar {
-            width: 420px;
-            background: var(--panel-bg);
-            border-right: 2px solid var(--gold);
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            overflow-y: auto;
-            box-shadow: 5px 0 15px rgba(0,0,0,0.5);
-            flex-shrink: 0;
-        }
+        .sidebar { width: 420px; background: var(--panel); border-right: 2px solid var(--gold); display: flex; flex-direction: column; padding: 20px; overflow-y: auto; flex-shrink: 0; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
+        h1 { font-size: 20px; text-align: center; border-bottom: 1px solid var(--gold-dim); padding-bottom: 15px; color: var(--gold); margin-top: 0; text-transform: uppercase; }
         
-        h1, h2, h3 { color: var(--gold); margin-top: 0; text-transform: uppercase; letter-spacing: 1px; }
-        h1 { font-size: 20px; text-align: center; border-bottom: 1px solid var(--gold-dim); padding-bottom: 15px; }
-
         label { display: block; margin-top: 15px; font-size: 13px; color: var(--gold); margin-bottom: 5px; font-weight: bold;}
+        .setting-group { border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 6px; padding: 10px; background: rgba(0,0,0,0.2); margin-bottom: 10px; }
         
-        /* ГРУППА НАСТРОЕК */
-        .setting-group {
-            border: 1px solid rgba(255, 215, 0, 0.3);
-            border-radius: 6px;
-            padding: 10px;
-            background: rgba(0,0,0,0.2);
-            margin-bottom: 10px;
-        }
-
-        /* Кнопки файлов */
         .file-control { display: flex; align-items: center; gap: 10px; }
-        .status-text { font-size: 11px; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
+        .status-text { font-size: 11px; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100px; }
         
-        input[type="text"], input[type="number"], textarea, select {
-            width: 100%;
-            background: #fff;
-            border: 1px solid var(--gold-dim);
-            color: #000;
-            padding: 8px;
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-family: sans-serif;
-        }
+        input, select { width: 100%; background: #fff; border: 1px solid var(--gold-dim); padding: 8px; border-radius: 4px; box-sizing: border-box; font-family: sans-serif; color: #000; }
         
-        /* СПИСОК ВОПРОСОВ */
         #qList { flex: 1; overflow-y: auto; margin: 20px 0; border-top: 1px solid rgba(255,215,0,0.2); padding-top: 10px; }
-        .q-item {
-            background: rgba(0,0,0,0.3);
-            border: 1px solid var(--gold-dim);
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 6px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            transition: 0.2s;
-        }
+        .q-item { background: rgba(0,0,0,0.3); border: 1px solid var(--gold-dim); padding: 10px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; }
         .q-item:hover { background: rgba(255,215,0,0.2); }
         .q-badges { display: flex; gap: 5px; font-size: 10px; }
         .badge { padding: 2px 5px; border-radius: 4px; background: var(--gold); color: #000; font-weight: bold;}
         
-        /* КНОПКИ */
-        .btn {
-            background: linear-gradient(180deg, var(--gold), var(--gold-dim));
-            color: #000;
-            border: none;
-            padding: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 4px;
-            text-transform: uppercase;
-            transition: 0.2s;
-            width: 100%;
-        }
-        .btn:hover { filter: brightness(1.15); box-shadow: 0 0 10px var(--gold); }
+        .btn { background: linear-gradient(180deg, var(--gold), var(--gold-dim)); color: #000; border: none; padding: 10px; font-weight: bold; cursor: pointer; border-radius: 4px; text-transform: uppercase; width: 100%; transition: 0.2s; }
+        .btn:hover { filter: brightness(1.15); }
         .btn-small { width: auto; padding: 5px 10px; font-size: 12px; }
-        .btn-del { background: #ff4444; color: white; border: none; }
-        .btn-file { background: #444; color: white; border: 1px solid #666; font-size: 12px; text-transform: none; padding: 8px;}
+        .btn-del { background: #ff4444; color: white; }
+        .btn-file { background: #444; color: white; border: 1px solid #666; font-size: 12px; text-transform: none; padding: 8px; width: auto;}
+        .btn-icon { background: transparent; border: 1px solid #555; color: #aaa; cursor: pointer; padding: 5px 8px; border-radius: 4px; }
+        .btn-icon:hover { color: #fff; border-color: #fff; }
 
-        /* ПРАВАЯ ПАНЕЛЬ (ПРЕВЬЮ) */
-        .preview-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: #000;
-            position: relative;
-        }
+        .preview-area { flex: 1; display: flex; flex-direction: column; background: #000; position: relative; }
         iframe { width: 100%; height: 100%; border: none; }
-        .preview-label {
-            position: absolute; top: 10px; right: 10px;
-            background: var(--gold); color: black;
-            padding: 5px 10px; font-weight: bold; border-radius: 4px;
-            z-index: 10; opacity: 0.8; pointer-events: none;
-        }
+        .preview-label { position: absolute; top: 10px; right: 10px; background: var(--gold); color: black; padding: 5px 10px; font-weight: bold; border-radius: 4px; z-index: 10; opacity: 0.8; pointer-events: none; }
 
-        /* МОДАЛЬНОЕ ОКНО */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            display: none; justify-content: center; align-items: center; z-index: 100;
-        }
-        .modal {
-            background: var(--panel-bg);
-            border: 2px solid var(--gold);
-            width: 500px;
-            max-height: 90vh;
-            overflow-y: auto;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 0 40px rgba(255, 215, 0, 0.3);
-        }
-        
+        /* MODAL */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 100; }
+        .modal { background: var(--panel); border: 2px solid var(--gold); width: 500px; max-height: 90vh; overflow-y: auto; padding: 25px; border-radius: 10px; box-shadow: 0 0 40px rgba(255, 215, 0, 0.3); }
         .media-row { display: flex; gap: 10px; align-items: center; margin-top: 5px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px;}
-        .preview-mini { max-height: 40px; max-width: 40px; display: none; border: 1px solid #fff; }
         .answer-row { display: flex; gap: 5px; align-items: center; margin-bottom: 5px; }
-        .correct-radio { accent-color: var(--gold); transform: scale(1.5); cursor: pointer; }
-
-        /* CHECKBOX */
-        .chk-label { display: flex; align-items: center; gap: 10px; cursor: pointer; margin-top: 5px;}
-        .chk-input { transform: scale(1.5); accent-color: var(--gold); }
+        .correct-radio { accent-color: var(--gold); transform: scale(1.5); cursor: pointer; width: auto; }
+        .chk-input { transform: scale(1.5); accent-color: var(--gold); width: auto; }
 
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #051024; }
@@ -156,23 +59,25 @@
         <label>🖼 Фон игры:</label>
         <div class="file-control">
             <input type="file" id="bgFile" accept="image/*" style="display:none" onchange="handleFile('bg', this)">
-            <button class="btn btn-file" onclick="document.getElementById('bgFile').click()">📂 Загрузить фон</button>
-            <span id="bgStatus" class="status-text">По умолчанию</span>
+            <button class="btn btn-file" onclick="document.getElementById('bgFile').click()">📂 Обзор</button>
+            <button class="btn-icon" onclick="clearFile('bg')" title="Удалить фон">❌</button>
+            <span id="bgStatus" class="status-text">Стандарт</span>
         </div>
 
         <label>🎵 Фоновая музыка:</label>
         <div class="file-control">
             <input type="file" id="musicFile" accept="audio/*" style="display:none" onchange="handleFile('music', this)">
-            <button class="btn btn-file" onclick="document.getElementById('musicFile').click()">📂 Загрузить MP3</button>
-            <span id="musicStatus" class="status-text">Нет</span>
+            <button class="btn btn-file" onclick="document.getElementById('musicFile').click()">📂 Обзор</button>
+            <button class="btn-icon" onclick="clearFile('music')" title="Без музыки">❌</button>
+            <span id="musicStatus" class="status-text">Без музыки</span>
         </div>
         
         <label>🎲 Порядок вопросов:</label>
         <select id="shuffleMode" onchange="updatePreview()">
-            <option value="false">По порядку (1, 2, 3...)</option>
+            <option value="false">По порядку (1 -> 2 -> 3)</option>
             <option value="true">Случайный (Перемешать)</option>
         </select>
-        <small style="color:#aaa; font-size:10px;">Если вопросов < 9, они будут повторяться по кругу.</small>
+        <small style="color:#aaa; font-size:10px;">Вопросы повторяются по кругу.</small>
     </div>
 
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 25px;">
@@ -195,7 +100,7 @@
 
 <div class="modal-overlay" id="modal">
     <div class="modal">
-        <h2 style="text-align:center;">Настройка вопроса</h2>
+        <h2 style="text-align:center; color:var(--gold);">Настройка вопроса</h2>
         
         <label>Тип вопроса:</label>
         <select id="mType" onchange="toggleAnsType()">
@@ -210,14 +115,14 @@
         <div class="media-row">
             <button class="btn btn-small btn-file" onclick="document.getElementById('mImgFile').click()">📷 Фото</button>
             <input type="file" id="mImgFile" accept="image/*" style="display:none" onchange="handleMediaPreview('img', this)">
-            <img id="prevImg" class="preview-mini">
-            <span id="nameImg" class="status-text" style="width:60px;">Нет</span>
-            
-            <div style="width:10px;"></div>
-
+            <span id="nameImg" class="status-text" style="margin-left:5px;">Нет</span>
+            <button class="btn-icon" style="margin-left:auto;" onclick="clearMedia('img')">❌</button>
+        </div>
+        <div class="media-row">
             <button class="btn btn-small btn-file" onclick="document.getElementById('mAudioFile').click()">🎵 Звук</button>
             <input type="file" id="mAudioFile" accept="audio/*" style="display:none" onchange="handleMediaPreview('audio', this)">
-            <span id="nameAudio" class="status-text" style="width:60px;">Нет</span>
+            <span id="nameAudio" class="status-text" style="margin-left:5px;">Нет</span>
+            <button class="btn-icon" style="margin-left:auto;" onclick="clearMedia('audio')">❌</button>
         </div>
 
         <div style="margin: 15px 0; padding: 10px; border: 1px solid var(--gold-dim); border-radius: 5px; background: rgba(0,0,0,0.2);">
@@ -234,7 +139,7 @@
 
         <label>Варианты ответов:</label>
         <div id="answersContainer"></div>
-        <button id="btnAddAns" class="btn btn-small" style="background:#333; color:#ccc; border:1px solid #555; margin-top:5px;" onclick="addChoiceRow()">+ Добавить вариант</button>
+        <button id="btnAddAns" class="btn btn-small" style="background:#333; color:#ccc; border:1px solid #555; margin-top:5px;" onclick="addChoiceRow()">+ Вариант</button>
 
         <div id="inputAnswerContainer" style="display:none;">
             <label>Правильный ответ:</label>
@@ -255,7 +160,6 @@
     let customMusic = null;
     let tempMedia = { img: null, audio: null };
 
-    // --- ФАЙЛЫ ---
     function handleFile(type, input) {
         const file = input.files[0];
         if(!file) return;
@@ -275,28 +179,41 @@
         reader.readAsDataURL(file);
     }
 
+    function clearFile(type) {
+        if(type === 'bg') {
+            customBg = null;
+            document.getElementById('bgStatus').innerText = "Стандарт";
+            document.getElementById('bgStatus').style.color = "#aaa";
+            document.getElementById('bgFile').value = "";
+        } else if(type === 'music') {
+            customMusic = null;
+            document.getElementById('musicStatus').innerText = "Без музыки";
+            document.getElementById('musicStatus').style.color = "#aaa";
+            document.getElementById('musicFile').value = "";
+        }
+        updatePreview();
+    }
+
     function handleMediaPreview(type, input) {
         const file = input.files[0];
         if(!file) return;
         const reader = new FileReader();
         reader.onload = (e) => {
             tempMedia[type] = e.target.result;
-            if(type === 'img') {
-                document.getElementById('prevImg').src = e.target.result;
-                document.getElementById('prevImg').style.display = 'block';
-                document.getElementById('nameImg').innerText = "OK";
-            } else {
-                document.getElementById('nameAudio').innerText = "OK";
-            }
+            document.getElementById(type === 'img' ? 'nameImg' : 'nameAudio').innerText = "Загружено";
         };
         reader.readAsDataURL(file);
     }
 
-    // --- UI ---
+    function clearMedia(type) {
+        tempMedia[type] = null;
+        document.getElementById(type === 'img' ? 'nameImg' : 'nameAudio').innerText = "Нет";
+        document.getElementById(type === 'img' ? 'mImgFile' : 'mAudioFile').value = "";
+    }
+
     function openModal(qData = null, index = null) {
         document.getElementById('modal').style.display = 'flex';
         tempMedia = { img: null, audio: null };
-        document.getElementById('prevImg').style.display = 'none';
         document.getElementById('nameImg').innerText = 'Нет';
         document.getElementById('nameAudio').innerText = 'Нет';
         document.getElementById('mTimerInfo').checked = false;
@@ -315,8 +232,6 @@
             }
             if(qData.img) {
                 tempMedia.img = qData.img;
-                document.getElementById('prevImg').src = qData.img;
-                document.getElementById('prevImg').style.display = 'block';
                 document.getElementById('nameImg').innerText = 'Загружено';
             }
             if(qData.audio) {
@@ -355,7 +270,7 @@
         div.innerHTML = `
             <input type="radio" name="correctAns" class="correct-radio" ${isCorrect ? 'checked' : ''}>
             <input type="text" class="ans-val" value="${val}" placeholder="Ответ">
-            <button class="btn btn-small btn-del" onclick="this.parentElement.remove()" style="width:30px;">×</button>
+            <button class="btn btn-small btn-del" onclick="this.parentElement.remove()" style="width:30px; margin-top:0;">×</button>
         `;
         document.getElementById('answersContainer').appendChild(div);
     }
@@ -423,11 +338,9 @@
         });
     }
 
-    // --- ПРЕВЬЮ И ЭКСПОРТ ---
     async function getFullGameCode() {
         const response = await fetch('./index.html');
         let html = await response.text();
-        
         const injectScript = `
         <script>
         window.GAME_DATA = {
@@ -438,8 +351,6 @@
         };
         <\/script>
         `;
-        
-        // Вставляем настройки ПЕРЕД любыми другими скриптами
         return html.replace('<head>', '<head>' + injectScript);
     }
 
@@ -453,12 +364,10 @@
     async function copyCode() {
         if(questions.length === 0) { alert("Добавьте вопросы!"); return; }
         const fullHtml = await getFullGameCode();
-        // Используем srcdoc для вставки "тяжелого" контента (картинки, музыка)
         const finalCode = `<iframe srcdoc='${fullHtml.replace(/'/g, "&apos;")}' width="100%" height="100%" style="width:100%;height:600px;border:none;"></iframe>`;
         navigator.clipboard.writeText(finalCode).then(() => alert("✅ Код скопирован!"));
     }
     
-    // Запуск пустой превьюшки
     updatePreview();
 </script>
 </body>
