@@ -8,7 +8,7 @@
     html,body{margin:0;padding:0;width:100%;height:100%;background:#051024;overflow:hidden;font-family:'Segoe UI',sans-serif;color:white;user-select:none;}
     body{position:relative;}
     canvas{position:fixed;inset:0;display:block;width:100vw;height:100vh;touch-action:none;}
-    
+        /* Красивый интерфейс (как в v7.0) */
     #ui{position:absolute;top:15px;left:15px;right:15px;display:flex;justify-content:space-between;pointer-events:none;z-index:5;}
     .hud{background:rgba(0,0,0,0.6);padding:8px 20px;border-radius:30px;border:2px solid #FFD700;font-weight:bold;font-size:18px;text-shadow:0 2px 2px black;}
     
@@ -56,15 +56,20 @@
 
   <div id="screen">
     <h1 id="title">БАШНЯ</h1>
-    <p id="desc" style="color:#aaa;max-width:300px;line-height:1.5;">Построй башню за 9 ходов.<br>Ошибка = блок сгорает.</p>
+    <p id="desc" style="color:#aaa;max-width:300px;line-height:1.5;">Построй башню.<br>Ошибка = блок взрывается.</p>
     <button class="big-btn" onclick="startGame()">ИГРАТЬ</button>
   </div>
 
 <script>
 // === КОНФИГУРАЦИЯ ===
-// Ссылка на репозиторий для картинок (чтобы они всегда грузились)
-const REPO = "https://svetlana18011991.github.io/redactor_bashnya/";
-const IMGS = ["3.png","4.png","5.png","6.png","7.png","8.png","9.png","10.png","11.png"];
+const REPO = (window.GAME_CFG && window.GAME_CFG.repoBase)
+  ? window.GAME_CFG.repoBase
+  : (new URL("./", location.href)).href;
+
+// Список URL картинок блоков.
+// В Genially (srcdoc/data:) важно передавать абсолютные ссылки из редактора.
+// Если не передано — используем стандарт 3..11.png.
+const DEFAULT_BLOCK_URLS = ["3.png","4.png","5.png","6.png","7.png","8.png","9.png","10.png","11.png"].map(f=>REPO+f);
 let DATA = { qs: [{type:'choice',q:'2+2?',options:['3','4'],answer:'4'}], bg: null, music: null, shuffle: false };
 
 if(window.GAME_CFG) DATA = window.GAME_CFG;
@@ -76,28 +81,31 @@ let timerInt = null;
 const audio = new Audio();
 const assets = { b: [], bg: null };
 
-// === ДВИЖОК (ФИКСИРОВАННЫЙ ПОЛ) ===
+// === ДВИЖОК ===
 let lastW = null, lastH = null;
 function resize() {
     const dpr = window.devicePixelRatio || 1;
     const newW = Math.max(1, window.innerWidth);
     const newH = Math.max(1, window.innerHeight);
 
+    // CSS size is handled by CSS (100vw/100vh). Here we set the drawing buffer.
     c.width  = Math.round(newW * dpr);
     c.height = Math.round(newH * dpr);
     c.style.width = newW + "px";
     c.style.height = newH + "px";
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
+    // Store logical (CSS) size used by the game
     W = newW; H = newH;
 
-    // Удерживаем башню на полу при изменении размера окна
+    // If the viewport height changes (e.g., on mobile keyboard / Genially resize),
+    // keep the base of the tower glued to the ground instead of "sinking" off screen.
     if (lastH !== null && game && (game.tower?.length || game.curr)) {
         const groundY = H - 50;
         let deltaY = 0;
 
         if (game.tower && game.tower.length) {
-            const base = game.tower[0]; 
+            const base = game.tower[0]; // first placed block sits on the ground
             const desiredBaseY = groundY - base.h;
             deltaY = desiredBaseY - base.y;
 
@@ -106,12 +114,14 @@ function resize() {
                 if (game.curr && game.curr.state !== 'drop') game.curr.y += deltaY;
             }
         } else if (game.curr && game.curr.state !== 'drop') {
+            // no tower yet, but a block may be waiting/falling — keep it aligned with the new ground
             const desiredY = groundY - game.curr.h;
             deltaY = desiredY - game.curr.y;
             game.curr.y += deltaY;
         }
     }
 
+    // Recenter horizontally after width changes
     if (lastW !== null && game) {
         const cx = W / 2;
         if (game.tower && game.tower.length) {
@@ -133,16 +143,12 @@ const load = (src) => new Promise(r => {
     img.crossOrigin = "Anonymous";
     img.onload = () => r(img);
     img.onerror = () => r(null);
-    // Проверка: если это Base64, используем как есть, иначе добавляем путь к репо
     img.src = src.startsWith('data:') ? src : (src.startsWith('http') ? src : REPO+src);
 });
 
 async function init() {
     assets.bg = await load(DATA.bg || "1.png");
-    for(let f of IMGS) { 
-        const img = await load(f); 
-        if(img) assets.b.push(img); 
-    }
+    for(let u of BLOCK_URLS) { const img = await load(u); if(img) assets.b.push(img); }
     if(DATA.shuffle && DATA.qs.length) {
         for(let i=DATA.qs.length-1; i>0; i--) {
             const j=Math.floor(Math.random()*(i+1));
@@ -152,7 +158,7 @@ async function init() {
     loop();
 }
 
-let game = { tower: [], curr: null, score: 0, attempt: 0, particles: [], smokes: [] };
+let game = { tower: [], curr: null, score: 0, attempt: 0, particles: [] };
 
 function startGame() {
     document.getElementById('screen').style.display = 'none';
@@ -167,7 +173,8 @@ function spawn() {
     const imgIdx = game.attempt % (assets.b.length || 1);
     const img = assets.b.length ? assets.b[imgIdx] : null;
     
-    // Авто-масштаб
+    // АВТО-МАСШТАБ: Чтобы 9 блоков точно влезли в экран без движения камеры
+    // Высота рабочей области (H - 100 пол - 100 отступ сверху) / 9 блоков
     const maxH = (H - 250) / 9; 
     let scale = 0.6;
     if(img && img.height * scale > maxH) {
@@ -178,8 +185,7 @@ function spawn() {
         img: img, 
         w: 120, h: 60, 
         x: W/2 - 60, y: -200, 
-        state: 'drop',
-        char: 0, shake: 0 // Свойства для сгорания
+        state: 'drop'
     };
     
     if(img) {
@@ -198,18 +204,24 @@ function endGame() {
 }
 
 function update() {
+    // 1. БЛОК
     if(game.curr) {
         const b = game.curr;
+        // ПОЛ ЗАФИКСИРОВАН (H - 50)
         const groundY = H - 50; 
         
         let landY = groundY - b.h; 
         if(game.tower.length > 0) {
+            // Сажаем на последний блок + нахлест
             landY = game.tower[game.tower.length-1].y - b.h + 5; 
         }
 
         if(b.state === 'drop') {
+            // Спуск до вопроса (позиция фиксирована над будущим местом посадки)
             let hoverY = H - 300; 
             if(game.tower.length > 0) hoverY = game.tower[game.tower.length-1].y - 120;
+            
+            // Ограничиваем, чтобы не улетал в космос
             if(hoverY < 50) hoverY = 50;
 
             b.y += 12;
@@ -223,6 +235,7 @@ function update() {
             b.y += 25;
             if(b.y >= landY) {
                 b.y = landY;
+                // Блок сел. Он больше НИКОГДА не сдвинется.
                 game.tower.push(b);
                 game.score += 100;
                 game.curr = null;
@@ -231,38 +244,13 @@ function update() {
                 setTimeout(spawn, 300);
             }
         }
-        else if(b.state === 'burn') {
-            // == ЭФФЕКТ СГОРАНИЯ ВОЗВРАЩЕН ==
-            b.char += 0.015; // Скорость почернения
-            b.shake = (Math.random()-0.5) * 10; // Вибрация
-            
-            // Генерация дыма
-            if(Math.random()>0.6) {
-                game.smokes.push({
-                    x: b.x + Math.random()*b.w, 
-                    y: b.y + Math.random()*b.h,
-                    vx: (Math.random()-0.5)*2, vy: -2 - Math.random()*2,
-                    life: 1, size: 5+Math.random()*10
-                });
-            }
-
-            if(b.char >= 1) {
-                boom(); // Взрыв после полного сгорания
-            }
-        }
     }
 
-    // Частицы взрыва
+    // 2. ЧАСТИЦЫ
     for(let i=game.particles.length-1; i>=0; i--) {
         let p = game.particles[i];
         p.x+=p.vx; p.y+=p.vy; p.life-=0.02;
         if(p.life<=0) game.particles.splice(i,1);
-    }
-    // Частицы дыма
-    for(let i=game.smokes.length-1; i>=0; i--) {
-        let s = game.smokes[i];
-        s.x+=s.vx; s.y+=s.vy; s.life-=0.02;
-        if(s.life<=0) game.smokes.splice(i,1);
     }
 }
 
@@ -271,13 +259,42 @@ function updUI() {
     document.getElementById('hScore').innerText = game.score;
 }
 
-// Заглушка, если картинка не прогрузилась
+
 function drawStoneBlock(x,y,w,h){
-  ctx.fillStyle = "#888";
-  ctx.fillRect(x, y, w, h);
-  ctx.strokeStyle = "#555";
+  // Рисуем "каменный" блок вместо жёлтого прямоугольника (если картинки недоступны)
+  const r = Math.min(16, Math.max(6, Math.floor(Math.min(w,h)*0.18)));
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+
+  const g = ctx.createLinearGradient(x, y, x, y+h);
+  g.addColorStop(0, "rgba(210,210,220,0.95)");
+  g.addColorStop(0.55, "rgba(140,145,155,0.95)");
+  g.addColorStop(1, "rgba(85,90,100,0.98)");
+  ctx.fillStyle = g;
+  ctx.fill();
+
   ctx.lineWidth = 2;
-  ctx.strokeRect(x, y, w, h);
+  ctx.strokeStyle = "rgba(0,0,0,0.25)";
+  ctx.stroke();
+
+  // небольшие "швы"
+  ctx.globalAlpha = 0.18;
+  ctx.strokeStyle = "rgba(255,255,255,0.9)";
+  ctx.lineWidth = 1;
+  for(let i=1;i<=3;i++){
+    const yy = y + (h/4)*i;
+    ctx.beginPath();
+    ctx.moveTo(x+10, yy);
+    ctx.lineTo(x+w-10, yy);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function draw() {
@@ -289,47 +306,24 @@ function draw() {
         ctx.drawImage(assets.bg, (W-assets.bg.width*sc)/2, (H-assets.bg.height*sc)/2, assets.bg.width*sc, assets.bg.height*sc);
     } else { ctx.fillStyle="#112"; ctx.fillRect(0,0,W,H); }
 
-    // Пол
+    // Пол (СТАТИЧНЫЙ)
     ctx.fillStyle="#222"; 
     ctx.fillRect(0, H-50, W, 50);
 
-    // Башня
+    // Башня (СТАТИЧНАЯ)
     game.tower.forEach(b => {
         if(b.img) ctx.drawImage(b.img, b.x, b.y, b.w, b.h);
-        else drawStoneBlock(b.x,b.y,b.w,b.h);
+        else { drawStoneBlock(b.x,b.y,b.w,b.h); }
     });
 
     // Текущий блок
     if(game.curr) {
         const b = game.curr;
-        const dx = b.x + (b.state === 'burn' ? b.shake : 0);
-        
-        if(b.img) ctx.drawImage(b.img, dx, b.y, b.w, b.h);
-        else drawStoneBlock(dx,b.y,b.w,b.h);
-
-        // ОТРИСОВКА СГОРАНИЯ
-        if(b.state === 'burn') {
-            // Черный слой (обугливание)
-            ctx.globalCompositeOperation = "source-atop";
-            ctx.fillStyle = `rgba(0,0,0,${b.char * 0.9})`; 
-            ctx.fillRect(dx, b.y, b.w, b.h);
-            
-            // Оранжевый слой (жар)
-            ctx.globalCompositeOperation = "lighter";
-            ctx.fillStyle = `rgba(255, 100, 0, ${b.char * 0.6})`;
-            ctx.fillRect(dx, b.y, b.w, b.h);
-            
-            ctx.globalCompositeOperation = "source-over";
-        }
+        if(b.img) ctx.drawImage(b.img, b.x, b.y, b.w, b.h);
+        else { drawStoneBlock(b.x,b.y,b.w,b.h); }
     }
 
-    // Дым
-    game.smokes.forEach(s => {
-        ctx.fillStyle=`rgba(80,80,80,${s.life*0.6})`;
-        ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, 7); ctx.fill();
-    });
-
-    // Взрыв
+    // Частицы
     game.particles.forEach(p => {
         ctx.fillStyle=p.color; ctx.globalAlpha=p.life;
         ctx.fillRect(p.x, p.y, p.size, p.size);
@@ -343,6 +337,7 @@ function loop() {
     draw();
 }
 
+// === ВЗАИМОДЕЙСТВИЕ ===
 function ask() {
     if(!DATA.qs || !DATA.qs.length) return; 
     const q = DATA.qs[game.attempt % DATA.qs.length];
@@ -413,15 +408,14 @@ function answer(win) {
         msg.innerText = "ОШИБКА! Блок сгорает..."; msg.style.color = "#f00";
         setTimeout(() => {
             document.getElementById('overlay').style.display='none';
-            // Запускаем фазу сгорания
-            if(game.curr) game.curr.state = 'burn';
+            boom(); // МГНОВЕННЫЙ ВЗРЫВ
         }, 1500);
     }
 }
 
 function boom() {
     const b = game.curr;
-    // Взрыв
+    // Создаем много частиц
     for(let i=0; i<40; i++) {
         game.particles.push({
             x: b.x + b.w/2, y: b.y + b.h/2,
@@ -433,7 +427,7 @@ function boom() {
         });
     }
     
-    // Блок удаляем
+    // Блок удаляем сразу
     game.curr = null;
     game.attempt++;
     updUI();
