@@ -180,7 +180,7 @@
         const resp = await fetch('./index.html');
         if(!resp.ok) return null;
         let html = await resp.text();
-        const cfg = { qs: qs, bg: assets.bg, music: assets.music, shuffle: document.getElementById('shuffleMode').value==='true' };
+        const cfg = { repoBase: location.origin + location.pathname.replace(/\/[^\/]*$/, "/"), qs: qs, bg: assets.bg, music: assets.music, shuffle: document.getElementById('shuffleMode').value==='true' };
         html = html.replace('<head>', `<head><script>window.GAME_CFG=${JSON.stringify(cfg)};<\/script>`);
         return "data:text/html;charset=utf-8;base64," + btoa(unescape(encodeURIComponent(html)));
     }
