@@ -5,35 +5,35 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Tower Game</title>
   <style>
-    body{margin:0;background:#051024;overflow:hidden;font-family:sans-serif;color:white;user-select:none;}
+    body{margin:0;background:#051024;overflow:hidden;font-family:'Segoe UI',sans-serif;color:white;user-select:none;}
     canvas{display:block;width:100%;height:100%;}
     
+    /* Красивый интерфейс (как в v7.0) */
     #ui{position:absolute;top:15px;left:15px;right:15px;display:flex;justify-content:space-between;pointer-events:none;z-index:5;}
-    .hud{background:rgba(0,0,0,0.8);padding:8px 20px;border-radius:30px;border:2px solid #FFD700;font-weight:bold;font-size:18px;}
+    .hud{background:rgba(0,0,0,0.6);padding:8px 20px;border-radius:30px;border:2px solid #FFD700;font-weight:bold;font-size:18px;text-shadow:0 2px 2px black;}
     
-    #overlay{position:absolute;inset:0;background:rgba(0,0,0,0.9);display:none;justify-content:center;align-items:center;flex-direction:column;z-index:20;}
+    #overlay{position:absolute;inset:0;background:rgba(0,0,0,0.85);display:none;justify-content:center;align-items:center;flex-direction:column;z-index:20;}
     #card{background:#1a202c;border:2px solid #FFD700;padding:25px;width:90%;max-width:400px;text-align:center;border-radius:15px;box-shadow:0 0 50px rgba(255, 215, 0, 0.2);}
     
-    #qImg{max-width:100%;max-height:200px;display:none;margin:0 auto 15px;border:1px solid #555;}
-    #qTxt{margin-bottom:20px;font-size:20px;font-weight:bold;color:#FFD700;}
+    #qImg{max-width:100%;max-height:200px;display:none;margin:0 auto 15px;border-radius:8px;border:1px solid #555;}
+    #qTxt{margin-bottom:20px;font-size:20px;font-weight:bold;color:#FFD700;line-height:1.4;}
     
-    .btn{background:#333;color:white;border:1px solid #666;padding:12px;width:100%;margin:5px 0;cursor:pointer;border-radius:5px;font-size:16px;}
-    .btn:hover{background:#FFD700;color:black;}
+    .btn{background:linear-gradient(to bottom, #444, #222);color:white;border:1px solid #666;padding:12px;width:100%;margin:8px 0;cursor:pointer;border-radius:8px;font-size:16px;transition:0.2s;}
+    .btn:hover{background:#FFD700;color:black;border-color:#FFD700;transform:scale(1.02);}
     
-    #inp{width:100%;padding:12px;display:none;margin-bottom:15px;border-radius:5px;border:1px solid #FFD700;background:#000;color:white;font-size:16px;box-sizing:border-box;}
+    #inp{width:100%;padding:12px;display:none;margin-bottom:15px;border-radius:8px;border:1px solid #FFD700;background:#000;color:white;font-size:16px;box-sizing:border-box;}
     #msg{margin-top:15px;font-weight:bold;height:24px;font-size:18px;}
     
-    #timerBar{height:6px;background:red;width:100%;position:absolute;top:0;left:0;display:none;z-index:30;}
-    #ver{position:absolute;bottom:5px;left:5px;color:lime;font-size:10px;pointer-events:none;}
+    #timerBar{height:6px;background:linear-gradient(to right, #f00, #f80);width:100%;position:absolute;top:0;left:0;display:none;z-index:30;}
     
-    /* Старт / Финал */
+    /* Стартовый экран */
     #screen{position:absolute;inset:0;background:rgba(5,16,36,0.98);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
-    h1{font-size:40px;color:#FFD700;margin:0 0 10px;}
-    .big-btn{background:#FFD700;color:black;border:none;padding:15px 50px;font-size:22px;border-radius:50px;font-weight:bold;cursor:pointer;margin-top:30px;}
+    h1{font-size:40px;color:#FFD700;margin:0 0 10px;text-transform:uppercase;letter-spacing:2px;}
+    .big-btn{background:#FFD700;color:black;border:none;padding:15px 50px;font-size:22px;border-radius:50px;font-weight:bold;cursor:pointer;margin-top:30px;box-shadow:0 0 30px rgba(255,215,0,0.4);transition:0.3s;}
+    .big-btn:hover{transform:scale(1.1);}
   </style>
 </head>
 <body>
-  <div id="ver">v9.0 (FIXED)</div>
   <div id="timerBar"></div>
   
   <div id="ui">
@@ -48,20 +48,20 @@
       <img id="qImg">
       <div id="qTxt"></div>
       <div id="ansBox"></div>
-      <input type="text" id="inp" placeholder="Ответ...">
-      <button class="btn" id="okBtn" style="display:none;background:#FFD700;color:black;" onclick="check()">OK</button>
+      <input type="text" id="inp" placeholder="Введите ответ...">
+      <button class="btn" id="okBtn" style="display:none;background:#FFD700;color:black;font-weight:bold;" onclick="check()">ОТВЕТИТЬ</button>
       <div id="msg"></div>
     </div>
   </div>
 
   <div id="screen">
     <h1 id="title">БАШНЯ</h1>
-    <p id="desc" style="color:#aaa;">Построй башню.<br>Неверный ответ - блок сгорает.</p>
+    <p id="desc" style="color:#aaa;max-width:300px;line-height:1.5;">Построй башню.<br>Ошибка = блок взрывается.</p>
     <button class="big-btn" onclick="startGame()">ИГРАТЬ</button>
   </div>
 
 <script>
-// --- КОНФИГУРАЦИЯ ---
+// === КОНФИГУРАЦИЯ ===
 const REPO = "https://svetlana18011991.github.io/redactor_bashnya/";
 const IMGS = ["3.png","4.png","5.png","6.png","7.png","8.png","9.png","10.png","11.png"];
 let DATA = { qs: [{type:'choice',q:'2+2?',options:['3','4'],answer:'4'}], bg: null, music: null, shuffle: false };
@@ -75,7 +75,7 @@ let timerInt = null;
 const audio = new Audio();
 const assets = { b: [], bg: null };
 
-// --- ENGINE ---
+// === ДВИЖОК ===
 function resize() { W=c.width=window.innerWidth; H=c.height=window.innerHeight; }
 window.onresize = resize; resize();
 
@@ -100,12 +100,12 @@ async function init() {
     loop();
 }
 
-let game = { tower: [], curr: null, score: 0, attempt: 0, camY: 0, particles: [], smokes: [] };
+let game = { tower: [], curr: null, score: 0, attempt: 0, particles: [] };
 
 function startGame() {
     document.getElementById('screen').style.display = 'none';
     if(DATA.music) { audio.src = DATA.music; audio.volume = 0.3; audio.loop = true; audio.play().catch(()=>{}); }
-    game.tower = []; game.score = 0; game.attempt = 0; game.camY = 0;
+    game.tower = []; game.score = 0; game.attempt = 0;
     updUI(); spawn();
 }
 
@@ -115,18 +115,22 @@ function spawn() {
     const imgIdx = game.attempt % (assets.b.length || 1);
     const img = assets.b.length ? assets.b[imgIdx] : null;
     
-    // Начальная позиция блока (сверху за экраном)
-    // camY влияет на отрисовку, поэтому спавним его выше текущего вида
+    // АВТО-МАСШТАБ: Чтобы 9 блоков точно влезли в экран без движения камеры
+    // Высота рабочей области (H - 100 пол - 100 отступ сверху) / 9 блоков
+    const maxH = (H - 250) / 9; 
+    let scale = 0.6;
+    if(img && img.height * scale > maxH) {
+        scale = maxH / img.height;
+    }
+
     game.curr = {
         img: img, 
-        w: 120, h: 70, 
+        w: 120, h: 60, 
         x: W/2 - 60, y: -200, 
-        state: 'drop', 
-        char: 0, shake: 0
+        state: 'drop'
     };
     
     if(img) {
-        const scale = 0.6;
         game.curr.w = img.width * scale;
         game.curr.h = img.height * scale;
         game.curr.x = W/2 - game.curr.w/2;
@@ -142,37 +146,26 @@ function endGame() {
 }
 
 function update() {
-    // === КАМЕРА ===
-    // Камера смотрит на верхушку башни, но пол (H-50) всегда остается точкой отсчета
-    let targetCam = 0;
-    if(game.tower.length > 3) {
-        // Сдвигаем "мир" вниз, чтобы башня влезала
-        targetCam = (game.tower.length - 3) * 60;
-    }
-    game.camY = game.camY * 0.95 + targetCam * 0.05;
-
-    // === БЛОК ===
+    // 1. БЛОК
     if(game.curr) {
         const b = game.curr;
-        // Координата пола с учетом камеры (Мир сдвигается вниз, значит пол уезжает вниз? Нет, мы транслируем)
-        // В world-координатах пол всегда H-50.
+        // ПОЛ ЗАФИКСИРОВАН (H - 50)
         const groundY = H - 50; 
         
-        let landY = groundY - b.h; // Посадка на пол
+        let landY = groundY - b.h; 
         if(game.tower.length > 0) {
-            landY = game.tower[game.tower.length-1].y - b.h + 5; // Посадка на блок
+            // Сажаем на последний блок + нахлест
+            landY = game.tower[game.tower.length-1].y - b.h + 5; 
         }
 
         if(b.state === 'drop') {
-            // Блок спускается до позиции вопроса
-            // Позиция вопроса должна быть над башней
+            // Спуск до вопроса (позиция фиксирована над будущим местом посадки)
             let hoverY = H - 300; 
-            if(game.tower.length > 0) hoverY = game.tower[game.tower.length-1].y - 150;
+            if(game.tower.length > 0) hoverY = game.tower[game.tower.length-1].y - 120;
             
-            // Если башня очень высокая, hoverY может быть отрицательным (выше экрана)
-            // Но мы транслируем канвас на camY. 
-            // Значит визуально блок должен быть на (hoverY + camY)
-            
+            // Ограничиваем, чтобы не улетал в космос
+            if(hoverY < 50) hoverY = 50;
+
             b.y += 12;
             if(b.y >= hoverY) {
                 b.y = hoverY;
@@ -184,6 +177,7 @@ function update() {
             b.y += 25;
             if(b.y >= landY) {
                 b.y = landY;
+                // Блок сел. Он больше НИКОГДА не сдвинется.
                 game.tower.push(b);
                 game.score += 100;
                 game.curr = null;
@@ -192,45 +186,13 @@ function update() {
                 setTimeout(spawn, 300);
             }
         }
-        else if(b.state === 'burn') {
-            // ЭФФЕКТ СГОРАНИЯ
-            b.char += 0.015;
-            b.shake = (Math.random()-0.5) * 10;
-            
-            // Дым
-            if(Math.random()>0.5) {
-                game.smokes.push({
-                    x: b.x + Math.random()*b.w, y: b.y + Math.random()*b.h,
-                    vx: (Math.random()-0.5)*2, vy: -2 - Math.random()*2,
-                    life: 1, size: 5+Math.random()*10
-                });
-            }
-
-            if(b.char >= 1) {
-                // Взрыв
-                for(let i=0;i<30;i++) game.particles.push({
-                    x: b.x + b.w/2, y: b.y + b.h/2,
-                    vx: (Math.random()-0.5)*20, vy: (Math.random()-0.5)*20,
-                    life: 1, color: `rgba(255,${Math.random()*150},0,1)`
-                });
-                game.curr = null;
-                game.attempt++;
-                updUI();
-                setTimeout(spawn, 500);
-            }
-        }
     }
 
-    // Частицы
+    // 2. ЧАСТИЦЫ
     for(let i=game.particles.length-1; i>=0; i--) {
         let p = game.particles[i];
-        p.x+=p.vx; p.y+=p.vy; p.life-=0.03;
+        p.x+=p.vx; p.y+=p.vy; p.life-=0.02;
         if(p.life<=0) game.particles.splice(i,1);
-    }
-    for(let i=game.smokes.length-1; i>=0; i--) {
-        let s = game.smokes[i];
-        s.x+=s.vx; s.y+=s.vy; s.life-=0.02;
-        if(s.life<=0) game.smokes.splice(i,1);
     }
 }
 
@@ -242,60 +204,35 @@ function updUI() {
 function draw() {
     ctx.clearRect(0,0,W,H);
     
+    // Фон
     if(assets.bg) {
         const sc = Math.max(W/assets.bg.width, H/assets.bg.height);
         ctx.drawImage(assets.bg, (W-assets.bg.width*sc)/2, (H-assets.bg.height*sc)/2, assets.bg.width*sc, assets.bg.height*sc);
     } else { ctx.fillStyle="#112"; ctx.fillRect(0,0,W,H); }
 
-    ctx.save();
-    // КАМЕРА: Мы сдвигаем весь мир ВНИЗ (translate Y positive), чтобы увидеть верхушку
-    ctx.translate(0, Math.round(game.camY));
+    // Пол (СТАТИЧНЫЙ)
+    ctx.fillStyle="#222"; 
+    ctx.fillRect(0, H-50, W, 50);
 
-    // ПОЛ (Рисуем в мире)
-    ctx.fillStyle="#222"; ctx.fillRect(0, H-50, W, 200);
-
-    // БАШНЯ
+    // Башня (СТАТИЧНАЯ)
     game.tower.forEach(b => {
         if(b.img) ctx.drawImage(b.img, b.x, b.y, b.w, b.h);
         else { ctx.fillStyle="gold"; ctx.fillRect(b.x, b.y, b.w, b.h); }
     });
 
-    // ТЕКУЩИЙ БЛОК
+    // Текущий блок
     if(game.curr) {
         const b = game.curr;
-        const dx = b.x + b.shake;
-        
-        if(b.img) ctx.drawImage(b.img, dx, b.y, b.w, b.h);
-        else { ctx.fillStyle="gold"; ctx.fillRect(dx, b.y, b.w, b.h); }
-
-        // ЭФФЕКТ СГОРАНИЯ (Наложение)
-        if(b.state === 'burn') {
-            // 1. Обугливание (Черный поверх)
-            ctx.globalCompositeOperation = "source-atop";
-            ctx.fillStyle = `rgba(0,0,0,${b.char * 0.9})`; 
-            ctx.fillRect(dx, b.y, b.w, b.h);
-            
-            // 2. Жар (Оранжевый glow)
-            ctx.globalCompositeOperation = "lighter";
-            ctx.fillStyle = `rgba(255, 100, 0, ${b.char * 0.6})`;
-            ctx.fillRect(dx, b.y, b.w, b.h);
-            
-            ctx.globalCompositeOperation = "source-over";
-        }
+        if(b.img) ctx.drawImage(b.img, b.x, b.y, b.w, b.h);
+        else { ctx.fillStyle="gold"; ctx.fillRect(b.x, b.y, b.w, b.h); }
     }
 
-    // FX
-    game.smokes.forEach(s => {
-        ctx.fillStyle=`rgba(100,100,100,${s.life*0.5})`;
-        ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, 7); ctx.fill();
-    });
+    // Частицы
     game.particles.forEach(p => {
         ctx.fillStyle=p.color; ctx.globalAlpha=p.life;
-        ctx.fillRect(p.x, p.y, 5, 5);
+        ctx.fillRect(p.x, p.y, p.size, p.size);
     });
     ctx.globalAlpha=1;
-
-    ctx.restore();
 }
 
 function loop() {
@@ -304,7 +241,7 @@ function loop() {
     draw();
 }
 
-// === INTERACTION ===
+// === ВЗАИМОДЕЙСТВИЕ ===
 function ask() {
     if(!DATA.qs || !DATA.qs.length) return; 
     const q = DATA.qs[game.attempt % DATA.qs.length];
@@ -372,12 +309,33 @@ function answer(win) {
             if(game.curr) game.curr.state = 'fall';
         }, 1000);
     } else {
-        msg.innerText = "НЕВЕРНО!"; msg.style.color = "#f00";
+        msg.innerText = "ОШИБКА! Блок сгорает..."; msg.style.color = "#f00";
         setTimeout(() => {
             document.getElementById('overlay').style.display='none';
-            if(game.curr) game.curr.state = 'burn';
+            boom(); // МГНОВЕННЫЙ ВЗРЫВ
         }, 1500);
     }
+}
+
+function boom() {
+    const b = game.curr;
+    // Создаем много частиц
+    for(let i=0; i<40; i++) {
+        game.particles.push({
+            x: b.x + b.w/2, y: b.y + b.h/2,
+            vx: (Math.random()-0.5)*20, 
+            vy: (Math.random()-0.5)*20,
+            life: 1, 
+            color: `rgba(255, ${Math.random()*200}, 0, 1)`,
+            size: Math.random()*6 + 2
+        });
+    }
+    
+    // Блок удаляем сразу
+    game.curr = null;
+    game.attempt++;
+    updUI();
+    setTimeout(spawn, 500);
 }
 
 init();
