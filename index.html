@@ -30,14 +30,14 @@
     h1{font-size:40px;color:#FFD700;margin:0 0 10px;text-transform:uppercase;letter-spacing:2px;}
     .big-btn{background:#FFD700;color:black;border:none;padding:15px 50px;font-size:22px;border-radius:50px;font-weight:bold;cursor:pointer;margin-top:30px;box-shadow:0 0 30px rgba(255,215,0,0.4);transition:0.3s;}
     .big-btn:hover{transform:scale(1.1);}
-    .big-btn:disabled{background:#555;color:#888;cursor:wait;transform:none;box-shadow:none;}
+    .big-btn:disabled{background:#555;color:#888;cursor:wait;transform:none;}
     
     #ver { position: absolute; bottom: 5px; left: 5px; font-size: 10px; color: #555; pointer-events: none; }
-    #loader { color: #FFD700; margin-top: 10px; font-size: 14px; }
+    #loader { color: gold; margin-top:10px; font-size: 12px; }
   </style>
 </head>
 <body>
-  <div id="ver">v12.0 (LOADER)</div>
+  <div id="ver">v13.0 (GENIALLY FIX)</div>
   <div id="timerBar"></div>
   
   <div id="ui">
@@ -66,10 +66,11 @@
   </div>
 
 <script>
-// === КОНФИГУРАЦИЯ ===
-const REPO = "https://svetlana18011991.github.io/redactor_bashnya/";
-// Список имен файлов, которые нужно загрузить (3.png - это первый блок)
+// === КОНФИГУРАЦИЯ GENIALLY ===
+// Прямая ссылка на репозиторий. Это критически важно для Genially.
+const REPO_URL = "https://svetlana18011991.github.io/redactor_bashnya/";
 const IMGS = ["3.png","4.png","5.png","6.png","7.png","8.png","9.png","10.png","11.png"];
+
 let DATA = { qs: [{type:'choice',q:'2+2?',options:['3','4'],answer:'4'}], bg: null, music: null, shuffle: false };
 
 if(window.GAME_CFG) DATA = window.GAME_CFG;
@@ -79,7 +80,6 @@ const ctx = c.getContext('2d');
 let W, H;
 let timerInt = null;
 const audio = new Audio();
-// assets.b будет хранить объекты картинок
 const assets = { b: [], bg: null };
 
 // === ДВИЖОК ===
@@ -96,103 +96,94 @@ function resize() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     W = newW; H = newH;
-
-    // Удержание физики при ресайзе
-    if (lastH !== null && game && (game.tower?.length || game.curr)) {
+    
+    // Пересчет позиций для стабильности
+    if (lastH !== null && game) {
         const groundY = H - 50;
-        let deltaY = 0;
-
         if (game.tower && game.tower.length) {
-            const base = game.tower[0]; 
-            const desiredBaseY = groundY - base.h;
-            deltaY = desiredBaseY - base.y;
-
-            if (deltaY) {
-                game.tower.forEach(b => { b.y += deltaY; });
-                if (game.curr && game.curr.state !== 'drop') game.curr.y += deltaY;
+            const base = game.tower[0];
+            const dy = (groundY - base.h) - base.y;
+            if (dy) {
+                game.tower.forEach(b => b.y += dy);
+                if (game.curr && game.curr.state !== 'drop') game.curr.y += dy;
             }
-        } else if (game.curr && game.curr.state !== 'drop') {
-            const desiredY = groundY - game.curr.h;
-            deltaY = desiredY - game.curr.y;
-            game.curr.y += deltaY;
+        }
+        if (lastW !== null) {
+            const cx = W / 2;
+            if (game.tower) game.tower.forEach(b => b.x = cx - b.w / 2);
+            if (game.curr) game.curr.x = cx - game.curr.w / 2;
         }
     }
-
-    if (lastW !== null && game) {
-        const cx = W / 2;
-        if (game.tower && game.tower.length) {
-            game.tower.forEach(b => { b.x = cx - b.w / 2; });
-        }
-        if (game.curr) {
-            game.curr.x = cx - game.curr.w / 2;
-        }
-    }
-
     lastW = W; lastH = H;
 }
 window.addEventListener('resize', resize, { passive: true });
 resize();
 
-// Функция загрузки с индикацией
-const load = (name) => new Promise(resolve => {
-    // Если это base64 или полный путь - используем как есть. 
-    // Если просто имя файла (3.png) - добавляем REPO.
-    let src = name.startsWith('data:') || name.startsWith('http') ? name : REPO + name;
+// Загрузчик с таймаутом (чтобы игра не висла в Genially)
+const load = (src) => new Promise(resolve => {
+    if(!src) { resolve({ok:false}); return; }
+    
+    // Если ссылка полная (http) или base64 - берем как есть. Иначе клеим REPO_URL
+    const fullSrc = (src.startsWith('data:') || src.startsWith('http')) ? src : REPO_URL + src;
     
     const img = new Image();
-    img.crossOrigin = "Anonymous";
+    img.crossOrigin = "Anonymous"; // Важно для Genially!
+    
+    let done = false;
     
     img.onload = () => {
+        if(done) return; done = true;
         resolve({ ok: true, img: img });
     };
     
     img.onerror = () => {
-        console.warn("Failed remote, trying local:", name);
-        // Попытка загрузить локально (если REPO не сработал)
-        if(src.startsWith('http')) {
-            const localImg = new Image();
-            localImg.onload = () => resolve({ ok: true, img: localImg });
-            localImg.onerror = () => {
-                console.error("Failed completely:", name);
-                resolve({ ok: false, src: name }); // Возвращаем имя файла при ошибке
-            };
-            // Пробуем просто имя файла (относительный путь)
-            localImg.src = name.split('/').pop(); 
-        } else {
-            resolve({ ok: false, src: name });
-        }
+        if(done) return; done = true;
+        console.warn("Error loading:", fullSrc);
+        resolve({ ok: false, src: src });
     };
     
-    img.src = src;
+    img.src = fullSrc;
+    
+    // Тайм-аут 3 секунды. Если картинка не грузится - пропускаем её, чтобы игра работала.
+    setTimeout(() => {
+        if(done) return; done = true;
+        console.warn("Timeout loading:", fullSrc);
+        resolve({ ok: false, src: src });
+    }, 3000);
 });
 
 async function init() {
     const loader = document.getElementById('loader');
-    const startBtn = document.getElementById('startBtn');
+    const btn = document.getElementById('startBtn');
     
-    // 1. Грузим фон
-    loader.innerText = "Загрузка фона...";
-    const bgRes = await load(DATA.bg || "1.png");
-    if(bgRes.ok) assets.bg = bgRes.img;
-    
-    // 2. Грузим блоки
-    let loadedCount = 0;
-    for(let f of IMGS) {
-        loader.innerText = `Загрузка блоков: ${loadedCount}/${IMGS.length}`;
-        const res = await load(f);
-        if(res.ok) {
-            assets.b.push(res.img);
-        } else {
-            // Если ошибка, пушим объект-заглушку с именем файла
-            assets.b.push({ error: true, name: f });
+    // 1. Фон
+    if(DATA.bg) {
+        const res = await load(DATA.bg);
+        if(res.ok) assets.bg = res.img;
+        else if(!DATA.bg.startsWith('data:')) {
+            // Фолбэк на дефолт, если кастомный не загрузился
+            const defBg = await load("1.png");
+            if(defBg.ok) assets.bg = defBg.img;
         }
-        loadedCount++;
+    } else {
+        const res = await load("1.png");
+        if(res.ok) assets.bg = res.img;
+    }
+    
+    // 2. Блоки
+    let count = 0;
+    for(let f of IMGS) {
+        loader.innerText = `Загрузка ресурсов ${Math.round((count/IMGS.length)*100)}%`;
+        const res = await load(f);
+        if(res.ok) assets.b.push(res.img);
+        else assets.b.push({ error: true, name: f });
+        count++;
     }
     
     loader.innerText = "";
-    startBtn.disabled = false;
-    startBtn.innerText = "ИГРАТЬ";
-    startBtn.style.cursor = "pointer";
+    btn.disabled = false;
+    btn.innerText = "ИГРАТЬ";
+    btn.style.cursor = "pointer";
     
     if(DATA.shuffle && DATA.qs.length) {
         for(let i=DATA.qs.length-1; i>0; i--) {
@@ -215,30 +206,24 @@ function startGame() {
 function spawn() {
     if(game.attempt >= 9) { endGame(); return; }
     
-    // Берем блок из массива assets.b
-    // assets.b[0] соответствует 3.png
     const imgIdx = game.attempt % (assets.b.length || 1);
     const asset = assets.b.length ? assets.b[imgIdx] : null;
     
-    // Расчет размеров
     const maxH = (H - 250) / 9; 
     let scale = 0.6;
-    let w=120, h=60;
-    let imgObj = null;
-    let errorName = null;
+    let w=120, h=60, imgObj=null, errName=null;
 
     if(asset && !asset.error) {
         imgObj = asset;
         if(imgObj.height * scale > maxH) scale = maxH / imgObj.height;
         w = imgObj.width * scale;
         h = imgObj.height * scale;
-    } else if (asset && asset.error) {
-        errorName = asset.name;
+    } else if(asset && asset.error) {
+        errName = asset.name;
     }
 
     game.curr = {
-        img: imgObj,
-        error: errorName, // Имя файла если ошибка
+        img: imgObj, error: errName,
         w: w, h: h, 
         x: W/2 - w/2, y: -200, 
         state: 'drop',
@@ -293,8 +278,7 @@ function update() {
             b.shake = (Math.random()-0.5) * 10;
             if(Math.random()>0.6) {
                 game.smokes.push({
-                    x: b.x + Math.random()*b.w, 
-                    y: b.y + Math.random()*b.h,
+                    x: b.x + Math.random()*b.w, y: b.y + Math.random()*b.h,
                     vx: (Math.random()-0.5)*2, vy: -2 - Math.random()*2,
                     life: 1, size: 5+Math.random()*10
                 });
@@ -320,55 +304,41 @@ function updUI() {
     document.getElementById('hScore').innerText = game.score;
 }
 
-// Рисует заглушку, если картинки нет
-function drawErrorBlock(x,y,w,h,name){
-  ctx.fillStyle = "#444";
-  ctx.fillRect(x, y, w, h);
-  ctx.strokeStyle = "red";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x, y, w, h);
-  ctx.fillStyle = "white";
-  ctx.font = "12px sans-serif";
-  ctx.fillText("Err: " + (name || "?"), x+5, y+20);
+function drawError(x,y,w,h,n) {
+    ctx.fillStyle="#444"; ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle="red"; ctx.lineWidth=2; ctx.strokeRect(x,y,w,h);
+    ctx.fillStyle="white"; ctx.font="10px sans-serif"; ctx.fillText(n||"Err", x+5, y+15);
 }
 
 function draw() {
     ctx.clearRect(0,0,W,H);
     
-    // Фон
     if(assets.bg && !assets.bg.error) {
         const sc = Math.max(W/assets.bg.width, H/assets.bg.height);
         ctx.drawImage(assets.bg, (W-assets.bg.width*sc)/2, (H-assets.bg.height*sc)/2, assets.bg.width*sc, assets.bg.height*sc);
     } else { ctx.fillStyle="#112"; ctx.fillRect(0,0,W,H); }
 
-    // Пол
-    ctx.fillStyle="#222"; 
-    ctx.fillRect(0, H-50, W, 50);
+    ctx.fillStyle="#222"; ctx.fillRect(0, H-50, W, 50);
 
-    // Башня
     game.tower.forEach(b => {
         if(b.img) ctx.drawImage(b.img, b.x, b.y, b.w, b.h);
-        else drawErrorBlock(b.x,b.y,b.w,b.h, b.error);
+        else drawError(b.x, b.y, b.w, b.h, b.error);
     });
 
-    // Текущий блок
     if(game.curr) {
         const b = game.curr;
         const dx = b.x + (b.state === 'burn' ? b.shake : 0);
         
         if(b.img) ctx.drawImage(b.img, dx, b.y, b.w, b.h);
-        else drawErrorBlock(dx,b.y,b.w,b.h, b.error);
+        else drawError(dx, b.y, b.w, b.h, b.error);
 
-        // Эффект сгорания
         if(b.state === 'burn') {
             ctx.globalCompositeOperation = "source-atop";
             ctx.fillStyle = `rgba(0,0,0,${b.char * 0.9})`; 
             ctx.fillRect(dx, b.y, b.w, b.h);
-            
             ctx.globalCompositeOperation = "lighter";
             ctx.fillStyle = `rgba(255, 100, 0, ${b.char * 0.6})`;
             ctx.fillRect(dx, b.y, b.w, b.h);
-            
             ctx.globalCompositeOperation = "source-over";
         }
     }
