@@ -90,7 +90,7 @@ const loadImg = src => new Promise(r => {
     if(!src) { r(null); return; }
     const fullSrc = src.startsWith('data:') ? src : REPO + src;
     const i=new Image(); 
-    i.crossOrigin = "Anonymous"; // Fix for canvas pollution
+    i.crossOrigin = "Anonymous"; 
     i.onload=()=>r(i); 
     i.onerror=()=>{ console.log("Skip:", fullSrc); r(null); }; 
     i.src=fullSrc; 
@@ -118,16 +118,12 @@ function startGame() {
 function spawn() {
     if(state.tower.length >= 9) return end(true);
     
-    // Fallback if images missing
     const useImg = ASSETS.b.length > 0;
     const imgIdx = state.tower.length % (useImg ? ASSETS.b.length : 1);
     const img = useImg ? ASSETS.b[imgIdx] : null;
     
-    // Scale logic
     let w=100, h=60;
-    if(img) { 
-        const scale = 0.6; w=img.width*scale; h=img.height*scale; 
-    }
+    if(img) { const scale = 0.6; w=img.width*scale; h=img.height*scale; }
     
     state.curr = {
         img, w, h,
@@ -214,7 +210,6 @@ function answer(win) {
     state.qIdx++;
 }
 
-// FX
 function boom(x, y) {
     state.rings.push({x, y, r:10, l:1});
     for(let i=0; i<15; i++) state.smokes.push({x, y, vx:(Math.random()-.5)*5, vy:(Math.random()-.5)*5, l:1, r:10});
@@ -242,8 +237,14 @@ function loop() {
 
     const groundY = H - 50;
     
+    // ИСПРАВЛЕННАЯ КАМЕРА (Стабильная)
     let targetCam = 0;
-    if(state.tower.length > 3) targetCam = (state.tower.length-2) * 50;
+    if(state.tower.length > 3) {
+        // Поднимаем камеру на высоту блоков, превышающих 3-й этаж.
+        // Используем среднюю высоту блока (около 50-60px)
+        targetCam = (state.tower.length - 3) * 55; 
+    }
+    // Плавное следование (0.9/0.1 - оптимально для стабильности)
     state.camY = state.camY * 0.9 + targetCam * 0.1;
 
     ctx.save();
@@ -264,7 +265,6 @@ function loop() {
             if(c.char >= 1) boom(c.x+c.w/2, c.y+c.h/2);
         } else if(!c.wait) {
             if(c.drop) {
-                // FIXED LANDING
                 let landY = groundY - c.h;
                 if(state.tower.length > 0) landY = state.tower[state.tower.length-1].y - c.h + 5;
                 c.y += 15;
@@ -287,10 +287,18 @@ function loop() {
             if(c.img) ctx.drawImage(c.img, Math.round(c.x), Math.round(c.y), c.w, c.h);
             else { ctx.fillStyle = "#aaa"; ctx.fillRect(c.x, c.y, c.w, c.h); }
             
+            // ИСПРАВЛЕННЫЙ ЭФФЕКТ СГОРАНИЯ (Обугливание + Жар)
             if(c.char > 0) {
+                // Слой 1: Чернение
                 ctx.globalCompositeOperation = "source-atop";
-                ctx.fillStyle = `rgba(0,0,0,${c.char})`;
+                ctx.fillStyle = `rgba(0,0,0,${c.char * 0.9})`; 
                 ctx.fillRect(c.x, c.y, c.w, c.h);
+                
+                // Слой 2: Оранжевый жар изнутри
+                ctx.globalCompositeOperation = "lighter";
+                ctx.fillStyle = `rgba(255,120,0,${c.char * 0.6})`;
+                ctx.fillRect(c.x, c.y, c.w, c.h);
+                
                 ctx.globalCompositeOperation = "source-over";
             }
         }
