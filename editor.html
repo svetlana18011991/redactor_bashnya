@@ -41,6 +41,7 @@
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 100; }
         .modal { background: var(--panel); border: 2px solid var(--gold); width: 500px; max-height: 90vh; overflow-y: auto; padding: 25px; border-radius: 10px; box-shadow: 0 0 40px rgba(255, 215, 0, 0.3); }
         .media-row { display: flex; gap: 10px; align-items: center; margin-top: 5px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px;}
+        .preview-mini { max-height: 40px; max-width: 40px; display: none; border: 1px solid #fff; }
         .answer-row { display: flex; gap: 5px; align-items: center; margin-bottom: 5px; }
         .correct-radio { accent-color: var(--gold); transform: scale(1.5); cursor: pointer; width: auto; }
         .chk-input { transform: scale(1.5); accent-color: var(--gold); width: auto; }
@@ -77,7 +78,7 @@
             <option value="false">По порядку (1 -> 2 -> 3)</option>
             <option value="true">Случайный (Перемешать)</option>
         </select>
-        <small style="color:#aaa; font-size:10px;">Вопросы повторяются по кругу.</small>
+        <small style="color:#aaa; font-size:10px;">Вопросы будут повторяться по кругу.</small>
     </div>
 
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 25px;">
@@ -115,6 +116,7 @@
         <div class="media-row">
             <button class="btn btn-small btn-file" onclick="document.getElementById('mImgFile').click()">📷 Фото</button>
             <input type="file" id="mImgFile" accept="image/*" style="display:none" onchange="handleMediaPreview('img', this)">
+            <img id="prevImg" class="preview-mini">
             <span id="nameImg" class="status-text" style="margin-left:5px;">Нет</span>
             <button class="btn-icon" style="margin-left:auto;" onclick="clearMedia('img')">❌</button>
         </div>
@@ -160,6 +162,7 @@
     let customMusic = null;
     let tempMedia = { img: null, audio: null };
 
+    // --- ФАЙЛЫ ---
     function handleFile(type, input) {
         const file = input.files[0];
         if(!file) return;
@@ -200,7 +203,13 @@
         const reader = new FileReader();
         reader.onload = (e) => {
             tempMedia[type] = e.target.result;
-            document.getElementById(type === 'img' ? 'nameImg' : 'nameAudio').innerText = "Загружено";
+            if(type === 'img') {
+                document.getElementById('prevImg').src = e.target.result;
+                document.getElementById('prevImg').style.display = 'block';
+                document.getElementById('nameImg').innerText = "OK";
+            } else {
+                document.getElementById('nameAudio').innerText = "OK";
+            }
         };
         reader.readAsDataURL(file);
     }
@@ -209,11 +218,14 @@
         tempMedia[type] = null;
         document.getElementById(type === 'img' ? 'nameImg' : 'nameAudio').innerText = "Нет";
         document.getElementById(type === 'img' ? 'mImgFile' : 'mAudioFile').value = "";
+        if(type==='img') document.getElementById('prevImg').style.display = 'none';
     }
 
+    // --- UI ---
     function openModal(qData = null, index = null) {
         document.getElementById('modal').style.display = 'flex';
         tempMedia = { img: null, audio: null };
+        document.getElementById('prevImg').style.display = 'none';
         document.getElementById('nameImg').innerText = 'Нет';
         document.getElementById('nameAudio').innerText = 'Нет';
         document.getElementById('mTimerInfo').checked = false;
@@ -232,6 +244,8 @@
             }
             if(qData.img) {
                 tempMedia.img = qData.img;
+                document.getElementById('prevImg').src = qData.img;
+                document.getElementById('prevImg').style.display = 'block';
                 document.getElementById('nameImg').innerText = 'Загружено';
             }
             if(qData.audio) {
@@ -269,7 +283,7 @@
         div.className = 'answer-row';
         div.innerHTML = `
             <input type="radio" name="correctAns" class="correct-radio" ${isCorrect ? 'checked' : ''}>
-            <input type="text" class="ans-val" value="${val}" placeholder="Ответ">
+            <input type="text" class="ans-val" value="${val}" placeholder="Вариант ответа">
             <button class="btn btn-small btn-del" onclick="this.parentElement.remove()" style="width:30px; margin-top:0;">×</button>
         `;
         document.getElementById('answersContainer').appendChild(div);
@@ -338,33 +352,38 @@
         });
     }
 
-    async function getFullGameCode() {
+    // --- ГЕНЕРАЦИЯ ---
+    async function constructGameCode() {
+        // Загружаем шаблон
         const response = await fetch('./index.html');
         let html = await response.text();
-        const injectScript = `
-        <script>
-        window.GAME_DATA = {
-            qs: ${JSON.stringify(questions)},
-            bg: "${customBg || ''}",
-            music: "${customMusic || ''}",
-            shuffle: ${document.getElementById('shuffleMode').value}
+        
+        // Вшиваем конфиг
+        const config = {
+            qs: questions,
+            bg: customBg,
+            music: customMusic,
+            shuffle: document.getElementById('shuffleMode').value === 'true'
         };
-        <\/script>
-        `;
-        return html.replace('<head>', '<head>' + injectScript);
+
+        const scriptTag = `<script>window.GAME_CONFIG = ${JSON.stringify(config)};<\/script>`;
+        return html.replace('<head>', '<head>' + scriptTag);
     }
 
     async function updatePreview() {
         if(questions.length === 0 && !customBg) return;
-        const code = await getFullGameCode();
-        const blob = new Blob([code], { type: 'text/html' });
-        document.getElementById('gameFrame').src = URL.createObjectURL(blob);
+        const code = await constructGameCode();
+        document.getElementById('gameFrame').srcdoc = code;
     }
 
     async function copyCode() {
-        if(questions.length === 0) { alert("Добавьте вопросы!"); return; }
-        const fullHtml = await getFullGameCode();
-        const finalCode = `<iframe srcdoc='${fullHtml.replace(/'/g, "&apos;")}' width="100%" height="100%" style="width:100%;height:600px;border:none;"></iframe>`;
+        if(questions.length === 0) { alert("Сначала добавьте вопросы!"); return; }
+        const fullHtml = await constructGameCode();
+        // Используем srcdoc для максимальной совместимости
+        // Экранируем двойные кавычки, чтобы не сломать атрибут
+        const escapedHtml = fullHtml.replace(/"/g, '&quot;');
+        const finalCode = `<iframe srcdoc="${escapedHtml}" width="100%" height="100%" style="width:100%;height:600px;border:none;"></iframe>`;
+        
         navigator.clipboard.writeText(finalCode).then(() => alert("✅ Код скопирован!"));
     }
     
