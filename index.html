@@ -9,7 +9,7 @@
     html,body{height:100%;margin:0;font-family:sans-serif;background:#000;color:#fff;overflow:hidden;}
     canvas{width:100%;height:100%;display:block;image-rendering:pixelated;}
     
-    #ver { position:absolute; bottom:5px; left:5px; color:lime; font-weight:bold; font-size:12px; z-index:100; pointer-events:none; }
+    #ver { position:absolute; bottom:5px; left:5px; color:cyan; font-weight:bold; font-size:12px; z-index:100; pointer-events:none; }
     
     #timer{position:absolute;top:0;left:0;width:100%;height:8px;background:rgba(255,255,255,.1);display:none;z-index:20;}
     #bar{height:100%;width:100%;background:linear-gradient(90deg,#ff9a9e,#ff5252);transition:width .1s linear;}
@@ -36,7 +36,7 @@
 
 <div id="wrap">
   <canvas id="c"></canvas>
-  <div id="ver">VER 5.0 (ИСПРАВЛЕНО)</div>
+  <div id="ver">VER 6.0 (ФИЛЬТР)</div>
   <div id="timer"><div id="bar"></div></div>
   <div id="hud">
     <div class="pill">Блоков: <span id="hCount">0</span>/9</div>
@@ -71,7 +71,6 @@
 </div>
 
 <script>
-// --- CONFIG & LOAD ---
 const REPO = "https://svetlana18011991.github.io/redactor_bashnya/";
 const IMGS = ["3.png","4.png","5.png","6.png","7.png","8.png","9.png","10.png","11.png"];
 let DATA = { qs: [{type:'choice',q:'Вопрос?',options:['1','2'],answer:'1'}], bg: null, music: null, shuffle: false };
@@ -109,7 +108,6 @@ async function init() {
 }
 init();
 
-// --- GAME LOGIC ---
 let state = { run: false, tower: [], curr: null, score: 0, qIdx: 0, camY: 0, particles: [], rings: [], smokes: [] };
 let timerInt = null;
 
@@ -123,7 +121,6 @@ function startGame() {
 function spawn() {
     if(state.tower.length >= 9) return end(true);
     
-    // Fallback if no images
     const useImg = ASSETS.b.length > 0;
     const imgIdx = state.tower.length % (useImg ? ASSETS.b.length : 1);
     const img = useImg ? ASSETS.b[imgIdx] : null;
@@ -131,11 +128,10 @@ function spawn() {
     let w=100, h=60;
     if(img) { const s = 0.6; w=img.width*s; h=img.height*s; }
     
-    // START POSITION: Always relative to camera to appear from top
     state.curr = {
         img, w, h,
         x: W/2 - w/2, 
-        y: -200 - state.camY, // Spawns way above
+        y: -200 - state.camY, 
         wait: false, drop: false, 
         char: 0, shakeX: 0
     };
@@ -236,59 +232,54 @@ function loop() {
     requestAnimationFrame(loop);
     
     ctx.clearRect(0,0,W,H);
-    // BG
     if(ASSETS.bg) {
         const s = Math.max(W/ASSETS.bg.width, H/ASSETS.bg.height);
         ctx.drawImage(ASSETS.bg, (W-ASSETS.bg.width*s)/2, (H-ASSETS.bg.height*s)/2, ASSETS.bg.width*s, ASSETS.bg.height*s);
     } else { ctx.fillStyle="#111"; ctx.fillRect(0,0,W,H); }
 
-    // FIXED FLOOR at bottom of screen
-    const groundY = H - 50; 
+    const groundY = H - 50;
     
-    // CAMERA
+    // КАМЕРА: Поднимается ТОЛЬКО если башня высокая. Никакого "проседания".
     let targetCam = 0;
-    if(state.tower.length > 4) targetCam = (state.tower.length - 4) * 55; 
-    state.camY = state.camY * 0.9 + targetCam * 0.1;
+    if(state.tower.length > 5) { // Начинаем сдвигать камеру после 5-го блока
+        targetCam = (state.tower.length - 5) * 55;
+    }
+    state.camY = state.camY * 0.95 + targetCam * 0.05;
 
     ctx.save();
     ctx.translate(0, Math.round(state.camY));
 
-    // FLOOR (Drawn relative to world)
+    // ПОЛ: Рисуем его так, чтобы он всегда был внизу "мира"
     ctx.fillStyle="#222"; 
     ctx.fillRect(0, groundY, W, 100);
 
-    // TOWER
+    // БАШНЯ
     state.tower.forEach((b, i) => {
         if(b.img) ctx.drawImage(b.img, Math.round(b.x), Math.round(b.y), b.w, b.h);
         else { ctx.fillStyle = `hsl(${i*40},70%,50%)`; ctx.fillRect(b.x, b.y, b.w, b.h); }
     });
 
-    // CURRENT BLOCK
+    // ТЕКУЩИЙ БЛОК
     if(state.curr) {
         const c = state.curr;
         
         if(c.charring) {
-            // BURNING LOGIC: SHAKE + DARKEN
             c.char += 0.015;
-            c.shakeX = (Math.random() - 0.5) * 6; // Shake
+            c.shakeX = (Math.random() - 0.5) * 6; // Тряска
             
-            // Add smoke while burning
+            // Дым
             if(Math.random()>0.7) state.smokes.push({x:c.x+c.w/2,y:c.y+c.h/2,vx:(Math.random()-.5)*2,vy:-3,l:1,r:5});
             
             if(c.char >= 1) boom(c.x+c.w/2, c.y+c.h/2);
         } else if(!c.wait) {
             if(c.drop) {
-                // FALLING LOGIC (Bulletproof)
-                let landY = groundY - c.h; // If no tower, land on floor
-                
+                // ПАДЕНИЕ (Надежная логика)
+                let landY = groundY - c.h;
                 if(state.tower.length > 0) {
-                    const top = state.tower[state.tower.length-1];
-                    landY = top.y - c.h + 5; // 5px overlap
+                    landY = state.tower[state.tower.length-1].y - c.h + 5; 
                 }
 
                 c.y += 20;
-                
-                // HARD STOP: Never go below landY
                 if(c.y >= landY) {
                     c.y = landY;
                     state.tower.push(c);
@@ -297,8 +288,8 @@ function loop() {
                     setTimeout(spawn, 300);
                 }
             } else {
-                // DESCENT
-                let hover = H - 250 - state.camY; // Adjust hover for camera
+                // СПУСК СВЕРХУ (с учетом камеры)
+                let hover = H - 250 - state.camY;
                 if(state.tower.length > 0) hover = state.tower[state.tower.length-1].y - 120;
                 
                 c.y += 10;
@@ -310,18 +301,20 @@ function loop() {
             const drawX = c.x + (c.charring ? c.shakeX : 0);
             const drawY = c.y;
 
+            // ЭФФЕКТ СГОРАНИЯ ЧЕРЕЗ ФИЛЬТР (БЕЗ ПРЯМОУГОЛЬНИКОВ)
+            if(c.char > 0) {
+                // Превращаем в черно-белое -> затемняем -> добавляем сепию (эффект гари)
+                ctx.filter = `grayscale(100%) brightness(${1 - c.char}) sepia(${c.char})`;
+            }
+
             if(c.img) ctx.drawImage(c.img, Math.round(drawX), Math.round(drawY), c.w, c.h);
             else { ctx.fillStyle = "#aaa"; ctx.fillRect(drawX, drawY, c.w, c.h); }
             
-            // CHARRING RENDER (No Red, just Black)
-            if(c.char > 0) {
-                ctx.fillStyle = `rgba(0,0,0,${c.char})`;
-                ctx.fillRect(Math.round(drawX), Math.round(drawY), c.w, c.h);
-            }
+            ctx.filter = 'none'; // Сброс фильтра
         }
     }
 
-    // FX
+    // ЧАСТИЦЫ
     state.smokes.forEach((s,i)=>{
         s.y-=1; s.x+=s.vx; s.l-=0.01; s.r+=0.2;
         ctx.fillStyle=`rgba(50,50,50,${s.l*0.5})`; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,7); ctx.fill();
