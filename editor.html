@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Golden Tower Editor</title>
+    <title>Golden Tower Editor v12</title>
     <style>
         :root { --bg: #051024; --panel: #0b1a36; --gold: #FFD700; --gold-dim: #b89b00; --text: #fff; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; height: 100vh; display: flex; overflow: hidden; }
         
-        /* Сайдбар */
         .sidebar { width: 420px; background: var(--panel); border-right: 2px solid var(--gold); display: flex; flex-direction: column; padding: 20px; overflow-y: auto; flex-shrink: 0; }
         
         h1 { font-size: 20px; text-align: center; border-bottom: 1px solid var(--gold-dim); padding-bottom: 15px; color: var(--gold); margin-top: 0; }
@@ -42,7 +41,7 @@
 <body>
 
 <div class="sidebar">
-    <h1>🏗 Редактор v11.0</h1>
+    <h1>🏗 Редактор v12.0</h1>
     <div class="setting-group">
         <label>🖼 Фон:</label>
         <div class="file-row">
@@ -192,7 +191,6 @@
         if(!resp.ok) return null;
         let html = await resp.text();
         const cfg = { qs: qs, bg: assets.bg, music: assets.music, shuffle: document.getElementById('shuffleMode').value==='true' };
-        // Вставка конфига
         html = html.replace('<head>', `<head><script>window.GAME_CFG=${JSON.stringify(cfg)};<\/script>`);
         return "data:text/html;charset=utf-8;base64," + btoa(unescape(encodeURIComponent(html)));
     }
@@ -210,7 +208,6 @@
         navigator.clipboard.writeText(code).then(()=>alert("✅ Код скопирован!"));
     }
     
-    // Инициализация
     updatePreview();
 </script>
 </body>
