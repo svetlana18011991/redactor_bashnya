@@ -5,13 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Башня знаний</title>
   <style>
-    :root{
-      --hud-bg: rgba(10, 12, 18, .55);
-      --panel-bg: rgba(20, 22, 30, .95);
-      --text: #fff; --gold: #FFD700; --good: #00C851; --bad: #ff4444;
-    }
+    :root{ --hud-bg: rgba(10, 12, 18, .55); --panel-bg: rgba(20, 22, 30, .95); --text: #fff; --gold: #FFD700; --good: #00C851; --bad: #ff4444; }
     html,body{height:100%;margin:0;font-family:system-ui,sans-serif;background:#000;color:white;overflow:hidden;}
-    canvas{width:100%;height:100%;display:block;}
+    canvas{width:100%;height:100%;display:block; image-rendering: pixelated;}
 
     #timerWrap { position: absolute; top:0; left:0; width:100%; height:8px; display:none; z-index:20; background:rgba(255,255,255,0.1); }
     #timerBar { height:100%; width:100%; background: linear-gradient(90deg, #ff9a9e, #ff5252); transition: width 0.1s linear; }
@@ -82,23 +78,20 @@
 </div>
 
 <script>
-// --- КОНФИГУРАЦИЯ ---
 const REPO = "https://svetlana18011991.github.io/redactor_bashnya/";
 const BLOCK_IMGS = ["3.png","4.png","5.png","6.png","7.png","8.png","9.png","10.png","11.png"];
-let QS = [{type:"choice",q:"2+2=?",options:["3","4","5"],answer:"4"}]; // Default
+let QS = [{type:"choice",q:"Пример вопроса?",options:["1","2"],answer:"1"}];
 let BG_SRC = REPO + "1.png";
 let SHUFFLE = false;
 let MUSIC_SRC = null;
-const OVERLAP = 15; // Глубокий нахлест против щелей
+const OVERLAP = 4; // Легкий нахлест для устранения щелей
 
-// --- ПРИЕМ ДАННЫХ ИЗ РЕДАКТОРА ---
 if(window.GAME_DATA) {
     if(window.GAME_DATA.qs && window.GAME_DATA.qs.length) QS = window.GAME_DATA.qs;
     if(window.GAME_DATA.bg) BG_SRC = window.GAME_DATA.bg;
     if(window.GAME_DATA.music) MUSIC_SRC = window.GAME_DATA.music;
     SHUFFLE = window.GAME_DATA.shuffle;
 } else {
-    // Для совместимости со старыми ссылками
     try {
         const p = new URLSearchParams(location.search).get('data');
         if(p) {
@@ -109,20 +102,18 @@ if(window.GAME_DATA) {
     } catch(e){}
 }
 
-// --- ДВИЖОК ---
 const cvs = document.getElementById("c"), ctx = cvs.getContext("2d");
 let W, H;
 const resize = ()=>{ W=cvs.width=window.innerWidth; H=cvs.height=window.innerHeight; };
 window.addEventListener("resize", resize); resize();
 
 const ASSETS = { blocks: [], bg: null };
-const load = (src) => new Promise(r => { const i=new Image(); i.onload=()=>r(i); i.src=(src.includes('data:')||src.includes('http'))?src:REPO+src; });
+const load = (src) => new Promise(r => { const i=new Image(); i.onload=()=>r(i); i.onerror=()=>r(null); i.src=(src.includes('data:')||src.includes('http'))?src:REPO+src; });
 
 async function init() {
     ASSETS.bg = await load(BG_SRC);
     for(let f of BLOCK_IMGS) ASSETS.blocks.push(await load(f));
     
-    // Перемешивание вопросов, если включено
     if(SHUFFLE) {
         for (let i = QS.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -132,38 +123,28 @@ async function init() {
 }
 init();
 
-const game = { run: false, tower: [], curr: null, score: 0, qIdx: 0, camY: 0, parts: [], wait: false, blockIdx: 0, offY:0 };
+const game = { run: false, tower: [], curr: null, score: 0, qIdx: 0, camY: 0, particles: [], rings: [], smokes: [], wait: false, blockIdx: 0, offY:0 };
 
 function startGame() {
     document.getElementById('startScreen').classList.add('hidden');
-    
-    // Музыка
     if(MUSIC_SRC) {
         const audio = document.getElementById('bgMusic');
-        audio.src = MUSIC_SRC;
-        audio.volume = 0.3;
-        audio.play().catch(e=>console.log("Audio play failed", e));
+        audio.src = MUSIC_SRC; audio.volume = 0.3;
+        audio.play().catch(e=>{});
     }
-
     game.run = true; game.tower = []; game.score = 0; game.qIdx = 0; game.camY = 0; game.blockIdx = 0; game.offY = 0;
     updHUD(); spawn(); loop();
 }
 
 function spawn() {
     if(game.blockIdx >= 9) { end(true); return; }
-    
     const img = ASSETS.blocks[game.blockIdx % ASSETS.blocks.length];
-    // Расчет масштаба (чтобы влезало в экран)
     const towerH = 9 * (img.height - OVERLAP); 
     const scale = Math.min(360 / img.width, (H - 200) / towerH);
     
     game.curr = {
-        img: img,
-        w: img.width * scale, h: img.height * scale,
-        x: W/2 - (img.width * scale)/2, 
-        y: -200, 
-        speed: 500,
-        stop: false,
+        img: img, w: img.width * scale, h: img.height * scale,
+        x: W/2 - (img.width * scale)/2, y: -200, 
         drop: false
     };
     game.wait = false;
@@ -174,25 +155,32 @@ function updHUD() {
     document.getElementById('scoreVal').innerText = game.score;
 }
 
-// --- ФИЗИКА ---
 function update(dt) {
     if(!game.run) return;
-    
-    // Камера
     game.offY = game.offY * 0.9 + game.camY * 0.1;
 
-    // Блок
+    // EFFECTS UPDATE
+    game.particles.forEach((p,i)=>{
+        p.x+=p.vx; p.y+=p.vy; p.l-=0.02;
+        if(p.l<=0) game.particles.splice(i,1);
+    });
+    game.smokes.forEach((s,i)=>{
+        s.y-=1; s.x+=s.vx; s.l-=0.01; s.rad+=0.2;
+        if(s.l<=0) game.smokes.splice(i,1);
+    });
+    game.rings.forEach((r,i)=>{
+        r.rad+=5; r.l-=0.03;
+        if(r.l<=0) game.rings.splice(i,1);
+    });
+
     if(game.curr) {
         const b = game.curr;
-        if(game.wait) return; // Ждем ответа
+        if(game.wait) return;
 
         if(b.drop) {
-            // Падает в башню
             let landY = H - 50;
-            if(game.tower.length) {
-                // Сажаем с НАХЛЕСТОМ (OVERLAP)
-                landY = game.tower[game.tower.length-1].y - b.h + (OVERLAP * (b.w / b.img.width));
-            }
+            if(game.tower.length) landY = game.tower[game.tower.length-1].y - b.h + OVERLAP;
+            
             b.y += 900 * dt;
             if(b.y >= landY) {
                 b.y = landY;
@@ -201,11 +189,10 @@ function update(dt) {
                 game.blockIdx++;
                 game.score += 100;
                 updHUD();
-                if(game.tower.length > 2) game.camY += b.h - (OVERLAP * (b.w / b.img.width));
+                if(game.tower.length > 2) game.camY += b.h - OVERLAP;
                 setTimeout(spawn, 300);
             }
         } else {
-            // Спускается до вопроса
             let hoverY = H - 200;
             if(game.tower.length) hoverY = game.tower[game.tower.length-1].y - 150;
             
@@ -216,29 +203,18 @@ function update(dt) {
             }
         }
     }
-    
-    // Частицы
-    game.parts.forEach((p,i)=>{
-        p.x+=p.vx; p.y+=p.vy; p.l-=0.05;
-        if(p.l<=0) game.parts.splice(i,1);
-    });
 }
 
-// --- ВОПРОСЫ ---
-let timerInt = null;
 function ask() {
     game.wait = true;
-    // Циклическое использование вопросов
     const q = QS[game.qIdx % QS.length];
-    
     const qText = document.getElementById('qText');
     const img = document.getElementById('qImg');
     const aud = document.getElementById('qAudio');
     const ansBox = document.getElementById('ansBox');
     const inpBox = document.getElementById('inputBox');
-    const msg = document.getElementById('msg');
-
-    msg.innerText = "";
+    
+    document.getElementById('msg').innerText = "";
     qText.innerText = q.q;
     
     img.style.display = q.img ? 'block' : 'none';
@@ -264,9 +240,7 @@ function ask() {
     }
 
     document.getElementById('overlay').style.display = 'flex';
-    
-    if(q.timer) startTimer(q.timer);
-    else document.getElementById('timerWrap').style.display = 'none';
+    if(q.timer) startTimer(q.timer); else document.getElementById('timerWrap').style.display = 'none';
 }
 
 function startTimer(s) {
@@ -300,7 +274,7 @@ function answer(win) {
             game.curr.drop = true;
         }, 1000);
     } else {
-        msg.innerText = "НЕВЕРНО! БЛОК СГОРАЕТ"; msg.style.color = "var(--bad)";
+        msg.innerText = "НЕВЕРНО! Блок сгорает."; msg.style.color = "var(--bad)";
         setTimeout(() => { 
             document.getElementById('overlay').style.display = 'none';
             boom();
@@ -309,12 +283,36 @@ function answer(win) {
     game.qIdx++;
 }
 
+// ОРИГИНАЛЬНЫЙ ВЗРЫВ
 function boom() {
     const b = game.curr;
-    for(let i=0; i<20; i++) game.parts.push({ x: b.x+b.w/2, y: b.y+b.h/2, vx:(Math.random()-0.5)*15, vy:(Math.random()-0.5)*15, l:1 });
+    const cx = b.x + b.w/2;
+    const cy = b.y + b.h/2;
+    
+    // Вспышка и кольцо
+    game.rings.push({x:cx, y:cy, rad:10, l:1});
+    
+    // Дым
+    for(let i=0; i<10; i++) {
+        game.smokes.push({
+            x: cx, y: cy,
+            vx: (Math.random()-0.5)*5, vy: (Math.random()-0.5)*5,
+            l: 1, rad: 10
+        });
+    }
+    
+    // Частицы
+    for(let i=0; i<30; i++) {
+        game.particles.push({
+            x: cx, y: cy,
+            vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15 - 5,
+            l: 1
+        });
+    }
+    
     game.curr = null;
     game.wait = false;
-    game.blockIdx++; // Следующий блок, даже если проиграл этот
+    game.blockIdx++; 
     setTimeout(spawn, 500);
 }
 
@@ -339,11 +337,21 @@ function loop() {
     ctx.save();
     ctx.translate(0, Math.round(game.offY));
 
-    game.tower.forEach(b => ctx.drawImage(b.img, b.x, b.y, b.w, b.h));
-    if(game.curr) ctx.drawImage(game.curr.img, game.curr.x, game.curr.y, game.curr.w, game.curr.h);
+    game.tower.forEach(b => ctx.drawImage(b.img, Math.round(b.x), Math.round(b.y), b.w, b.h));
+    if(game.curr) ctx.drawImage(game.curr.img, Math.round(game.curr.x), Math.round(game.curr.y), game.curr.w, game.curr.h);
 
-    game.parts.forEach(p => {
-        ctx.fillStyle = `rgba(255,100,50,${p.l})`;
+    // Render Effects
+    game.smokes.forEach(s => {
+        ctx.fillStyle = `rgba(50,50,50,${s.l*0.5})`;
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.rad, 0, Math.PI*2); ctx.fill();
+    });
+    game.rings.forEach(r => {
+        ctx.strokeStyle = `rgba(255,255,255,${r.l})`;
+        ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.arc(r.x, r.y, r.rad, 0, Math.PI*2); ctx.stroke();
+    });
+    game.particles.forEach(p => {
+        ctx.fillStyle = `rgba(255,${Math.random()*150+100},50,${p.l})`;
         ctx.fillRect(p.x,p.y,5,5);
     });
 
