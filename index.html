@@ -5,9 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Башня знаний</title>
   <style>
-    :root{ --hud: rgba(10,12,18,.7); --gold: #FFD700; --good: #00C851; --bad: #ff4444; }
+    :root{ --hud: rgba(10,12,18,.8); --gold: #FFD700; --good: #00C851; --bad: #ff4444; }
     html,body{height:100%;margin:0;font-family:sans-serif;background:#000;color:#fff;overflow:hidden;}
     canvas{width:100%;height:100%;display:block;image-rendering:pixelated;}
+    
+    #ver { position:absolute; bottom:5px; left:5px; color:lime; font-weight:bold; font-size:12px; z-index:100; pointer-events:none; }
     
     #timer{position:absolute;top:0;left:0;width:100%;height:8px;background:rgba(255,255,255,.1);display:none;z-index:20;}
     #bar{height:100%;width:100%;background:linear-gradient(90deg,#ff9a9e,#ff5252);transition:width .1s linear;}
@@ -15,10 +17,11 @@
     #hud{position:absolute;top:15px;left:15px;right:15px;display:flex;justify-content:space-between;z-index:5;pointer-events:none;}
     .pill{background:var(--hud);padding:8px 16px;border-radius:20px;border:1px solid rgba(255,255,255,.2);font-weight:bold;backdrop-filter:blur(5px);}
     
-    #overlay{position:absolute;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:10;flex-direction:column;}
-    #card{width:90%;max-width:450px;background:#1a1c24;border:2px solid var(--gold);border-radius:15px;padding:25px;text-align:center;box-shadow:0 0 30px rgba(255,215,0,.2);max-height:90vh;overflow-y:auto;}
+    #overlay{position:absolute;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;z-index:10;flex-direction:column;}
+    #card{width:90%;max-width:450px;background:#1a1c24;border:2px solid var(--gold);border-radius:15px;padding:25px;text-align:center;box-shadow:0 0 40px rgba(255,215,0,.15);max-height:90vh;overflow-y:auto;}
     
-    .btn{background:rgba(255,255,255,.1);border:1px solid var(--gold);color:#fff;padding:12px;border-radius:8px;cursor:pointer;font-size:16px;margin:5px 0;width:100%;transition:.2s;}
+    .ans-grid{display:grid;gap:10px;}
+    .btn{background:rgba(255,255,255,.1);border:1px solid var(--gold);color:#fff;padding:12px;border-radius:8px;cursor:pointer;font-size:16px;width:100%;transition:.2s;}
     .btn:hover{background:var(--gold);color:#000;}
     
     #qImg{max-width:100%;max-height:180px;margin-bottom:15px;border-radius:5px;display:none;margin:0 auto 10px;}
@@ -27,28 +30,24 @@
     #start, #end{position:absolute;inset:0;background:#000;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
     .big-btn{background:var(--gold);color:#000;border:none;padding:15px 40px;font-size:20px;border-radius:30px;font-weight:bold;cursor:pointer;margin-top:20px;}
     .hide{display:none !important;}
-    
-    /* МЕТКА ВЕРСИИ */
-    #ver { position:absolute; bottom:5px; left:5px; color:rgba(255,255,255,0.3); font-size:10px; pointer-events:none; z-index:100; }
   </style>
 </head>
 <body>
 
 <div id="wrap">
   <canvas id="c"></canvas>
+  <div id="ver">VER 5.0 (ИСПРАВЛЕНО)</div>
   <div id="timer"><div id="bar"></div></div>
   <div id="hud">
     <div class="pill">Блоков: <span id="hCount">0</span>/9</div>
     <div class="pill">Счет: <span id="hScore">0</span></div>
   </div>
-  
-  <div id="ver">v3.0 (Финал)</div>
 
   <div id="overlay">
     <div id="card">
       <img id="qImg"> <audio id="qAud" controls></audio>
       <div id="qText" style="font-size:20px;margin-bottom:15px;color:var(--gold);font-weight:bold;"></div>
-      <div id="ansBox"></div>
+      <div id="ansBox" class="ans-grid"></div>
       <div id="inpBox" style="display:none;margin-top:10px;">
         <input type="text" id="ansInp" style="width:70%;padding:10px;border-radius:5px;border:none;" placeholder="Ответ...">
         <button class="btn" style="width:auto;margin-top:10px;" onclick="checkInp()">OK</button>
@@ -72,9 +71,10 @@
 </div>
 
 <script>
+// --- CONFIG & LOAD ---
 const REPO = "https://svetlana18011991.github.io/redactor_bashnya/";
 const IMGS = ["3.png","4.png","5.png","6.png","7.png","8.png","9.png","10.png","11.png"];
-let DATA = { qs: [{type:'choice',q:'Пример вопроса?',options:['1','2'],answer:'1'}], bg: null, music: null, shuffle: false };
+let DATA = { qs: [{type:'choice',q:'Вопрос?',options:['1','2'],answer:'1'}], bg: null, music: null, shuffle: false };
 
 if(window.GAME_CFG) DATA = window.GAME_CFG;
 else {
@@ -96,7 +96,7 @@ const loadImg = src => new Promise(r => {
     const i=new Image(); 
     i.crossOrigin = "Anonymous"; 
     i.onload=()=>r(i); 
-    i.onerror=()=>{ console.log("Skip:", fullSrc); r(null); }; 
+    i.onerror=()=>{ r(null); }; 
     i.src=fullSrc; 
 });
 
@@ -109,6 +109,7 @@ async function init() {
 }
 init();
 
+// --- GAME LOGIC ---
 let state = { run: false, tower: [], curr: null, score: 0, qIdx: 0, camY: 0, particles: [], rings: [], smokes: [] };
 let timerInt = null;
 
@@ -122,21 +123,21 @@ function startGame() {
 function spawn() {
     if(state.tower.length >= 9) return end(true);
     
-    // Безопасный выбор картинки
+    // Fallback if no images
     const useImg = ASSETS.b.length > 0;
     const imgIdx = state.tower.length % (useImg ? ASSETS.b.length : 1);
     const img = useImg ? ASSETS.b[imgIdx] : null;
     
-    // Размеры (если картинки нет - дефолт 100x60)
     let w=100, h=60;
-    if(img) { 
-        const scale = 0.6; w=img.width*scale; h=img.height*scale; 
-    }
+    if(img) { const s = 0.6; w=img.width*s; h=img.height*s; }
     
+    // START POSITION: Always relative to camera to appear from top
     state.curr = {
         img, w, h,
-        x: W/2 - w/2, y: -200,
-        wait: false, drop: false, char: 0
+        x: W/2 - w/2, 
+        y: -200 - state.camY, // Spawns way above
+        wait: false, drop: false, 
+        char: 0, shakeX: 0
     };
 }
 
@@ -152,10 +153,8 @@ function ask() {
     
     document.getElementById('qText').innerText = q.q;
     document.getElementById('msg').innerText = "";
-    
     const im = document.getElementById('qImg');
     if(q.img) { im.src=q.img; im.style.display='block'; } else im.style.display='none';
-    
     const au = document.getElementById('qAud');
     if(q.audio) { au.src=q.audio; au.style.display='block'; } else { au.style.display='none'; au.pause(); }
 
@@ -180,8 +179,7 @@ function ask() {
     
     if(q.timer) {
         document.getElementById('timer').style.display='block';
-        let t = q.timer;
-        const b = document.getElementById('bar');
+        let t = q.timer; const b = document.getElementById('bar');
         if(timerInt) clearInterval(timerInt);
         timerInt = setInterval(()=>{
             t -= 0.1; b.style.width = (t/q.timer*100)+'%';
@@ -212,7 +210,7 @@ function answer(win) {
         m.innerText = "ОШИБКА! Блок сгорает..."; m.style.color = "var(--bad)";
         setTimeout(()=>{
             document.getElementById('overlay').style.display='none';
-            if(state.curr) state.curr.charring = true; // Запуск эффекта
+            if(state.curr) state.curr.charring = true;
         }, 1500);
     }
     state.qIdx++;
@@ -238,49 +236,59 @@ function loop() {
     requestAnimationFrame(loop);
     
     ctx.clearRect(0,0,W,H);
+    // BG
     if(ASSETS.bg) {
         const s = Math.max(W/ASSETS.bg.width, H/ASSETS.bg.height);
         ctx.drawImage(ASSETS.bg, (W-ASSETS.bg.width*s)/2, (H-ASSETS.bg.height*s)/2, ASSETS.bg.width*s, ASSETS.bg.height*s);
     } else { ctx.fillStyle="#111"; ctx.fillRect(0,0,W,H); }
 
-    const groundY = H - 50;
+    // FIXED FLOOR at bottom of screen
+    const groundY = H - 50; 
     
-    // ИСПРАВЛЕННАЯ КАМЕРА: ЧЕТКИЙ ШАГ
-    // Камера поднимается только если башня выше 4 блоков
-    // Расчет целевой позиции жесткий: (кол-во блоков - 4) * высота блока (~55px)
+    // CAMERA
     let targetCam = 0;
-    if(state.tower.length > 4) {
-        targetCam = (state.tower.length - 4) * 55;
-    }
-    // Плавное приближение к цели
-    state.camY = state.camY * 0.95 + targetCam * 0.05;
+    if(state.tower.length > 4) targetCam = (state.tower.length - 4) * 55; 
+    state.camY = state.camY * 0.9 + targetCam * 0.1;
 
     ctx.save();
     ctx.translate(0, Math.round(state.camY));
 
-    // Отрисовка башни
-    state.tower.forEach(b => {
+    // FLOOR (Drawn relative to world)
+    ctx.fillStyle="#222"; 
+    ctx.fillRect(0, groundY, W, 100);
+
+    // TOWER
+    state.tower.forEach((b, i) => {
         if(b.img) ctx.drawImage(b.img, Math.round(b.x), Math.round(b.y), b.w, b.h);
-        else { ctx.fillStyle="#888"; ctx.fillRect(b.x, b.y, b.w, b.h); }
+        else { ctx.fillStyle = `hsl(${i*40},70%,50%)`; ctx.fillRect(b.x, b.y, b.w, b.h); }
     });
 
+    // CURRENT BLOCK
     if(state.curr) {
         const c = state.curr;
         
         if(c.charring) {
+            // BURNING LOGIC: SHAKE + DARKEN
             c.char += 0.015;
+            c.shakeX = (Math.random() - 0.5) * 6; // Shake
+            
+            // Add smoke while burning
+            if(Math.random()>0.7) state.smokes.push({x:c.x+c.w/2,y:c.y+c.h/2,vx:(Math.random()-.5)*2,vy:-3,l:1,r:5});
+            
             if(c.char >= 1) boom(c.x+c.w/2, c.y+c.h/2);
         } else if(!c.wait) {
             if(c.drop) {
-                // ИСПРАВЛЕННОЕ ПРИЗЕМЛЕНИЕ:
-                // Цель для НИЖНЕЙ границы блока (y + h)
-                let landY = groundY - c.h; // По умолчанию на пол
+                // FALLING LOGIC (Bulletproof)
+                let landY = groundY - c.h; // If no tower, land on floor
+                
                 if(state.tower.length > 0) {
-                    // Ставим на предыдущий блок с нахлестом 5px
-                    landY = state.tower[state.tower.length-1].y - c.h + 5;
+                    const top = state.tower[state.tower.length-1];
+                    landY = top.y - c.h + 5; // 5px overlap
                 }
 
                 c.y += 20;
+                
+                // HARD STOP: Never go below landY
                 if(c.y >= landY) {
                     c.y = landY;
                     state.tower.push(c);
@@ -289,38 +297,31 @@ function loop() {
                     setTimeout(spawn, 300);
                 }
             } else {
-                // Спуск до вопроса
-                let hoverY = H - 250;
-                if(state.tower.length > 0) hoverY = state.tower[state.tower.length-1].y - 120;
+                // DESCENT
+                let hover = H - 250 - state.camY; // Adjust hover for camera
+                if(state.tower.length > 0) hover = state.tower[state.tower.length-1].y - 120;
                 
                 c.y += 10;
-                if(c.y >= hoverY) { c.y = hoverY; ask(); }
+                if(c.y >= hover) { c.y = hover; ask(); }
             }
         }
 
         if(state.curr) {
-            if(c.img) ctx.drawImage(c.img, Math.round(c.x), Math.round(c.y), c.w, c.h);
-            else { ctx.fillStyle="#aaa"; ctx.fillRect(c.x, c.y, c.w, c.h); }
+            const drawX = c.x + (c.charring ? c.shakeX : 0);
+            const drawY = c.y;
+
+            if(c.img) ctx.drawImage(c.img, Math.round(drawX), Math.round(drawY), c.w, c.h);
+            else { ctx.fillStyle = "#aaa"; ctx.fillRect(drawX, drawY, c.w, c.h); }
             
-            // ЭФФЕКТ СГОРАНИЯ (КАК В ОРИГИНАЛЕ)
-            // Без красного квадрата, только затемнение + свечение
+            // CHARRING RENDER (No Red, just Black)
             if(c.char > 0) {
-                // 1. Затемнение (обугливание)
-                ctx.globalCompositeOperation = "source-atop";
                 ctx.fillStyle = `rgba(0,0,0,${c.char})`;
-                ctx.fillRect(c.x, c.y, c.w, c.h);
-                
-                // 2. Внутренний жар (оранжевый)
-                ctx.globalCompositeOperation = "lighter";
-                ctx.fillStyle = `rgba(255,100,0,${c.char * 0.5})`;
-                ctx.fillRect(c.x, c.y, c.w, c.h);
-                
-                ctx.globalCompositeOperation = "source-over";
+                ctx.fillRect(Math.round(drawX), Math.round(drawY), c.w, c.h);
             }
         }
     }
 
-    // Частицы и эффекты
+    // FX
     state.smokes.forEach((s,i)=>{
         s.y-=1; s.x+=s.vx; s.l-=0.01; s.r+=0.2;
         ctx.fillStyle=`rgba(50,50,50,${s.l*0.5})`; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,7); ctx.fill();
@@ -338,10 +339,6 @@ function loop() {
     });
 
     ctx.restore();
-    
-    // Пол рисуется относительно камеры, чтобы не уезжал
-    ctx.fillStyle="#222"; 
-    ctx.fillRect(0, groundY + Math.round(state.camY), W, 50);
 }
 </script>
 </body>
