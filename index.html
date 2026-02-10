@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Tower Game</title>
   <style>
-    /* Стиль из v7.0 (синий фон, золотые рамки) */
     html,body{margin:0;padding:0;width:100%;height:100%;background:#051024;overflow:hidden;font-family:'Segoe UI',sans-serif;color:white;user-select:none;}
-    canvas{display:block;width:100%;height:100%;}
-    
-    #ui{position:absolute;top:15px;left:15px;right:15px;display:flex;justify-content:space-between;pointer-events:none;z-index:10;}
+    body{position:relative;}
+    canvas{position:fixed;inset:0;display:block;width:100vw;height:100vh;touch-action:none;}
+        /* Красивый интерфейс (как в v7.0) */
+    #ui{position:absolute;top:15px;left:15px;right:15px;display:flex;justify-content:space-between;pointer-events:none;z-index:5;}
     .hud{background:rgba(0,0,0,0.6);padding:8px 20px;border-radius:30px;border:2px solid #FFD700;font-weight:bold;font-size:18px;text-shadow:0 2px 2px black;}
     
-    #overlay{position:absolute;inset:0;background:rgba(0,0,0,0.9);display:none;justify-content:center;align-items:center;flex-direction:column;z-index:20;}
+    #overlay{position:absolute;inset:0;background:rgba(0,0,0,0.85);display:none;justify-content:center;align-items:center;flex-direction:column;z-index:20;}
     #card{background:#1a202c;border:2px solid #FFD700;padding:25px;width:90%;max-width:400px;text-align:center;border-radius:15px;box-shadow:0 0 50px rgba(255, 215, 0, 0.2);}
     
     #qImg{max-width:100%;max-height:200px;display:none;margin:0 auto 15px;border-radius:8px;border:1px solid #555;}
@@ -26,17 +26,14 @@
     
     #timerBar{height:6px;background:linear-gradient(to right, #f00, #f80);width:100%;position:absolute;top:0;left:0;display:none;z-index:30;}
     
+    /* Стартовый экран */
     #screen{position:absolute;inset:0;background:rgba(5,16,36,0.98);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
     h1{font-size:40px;color:#FFD700;margin:0 0 10px;text-transform:uppercase;letter-spacing:2px;}
     .big-btn{background:#FFD700;color:black;border:none;padding:15px 50px;font-size:22px;border-radius:50px;font-weight:bold;cursor:pointer;margin-top:30px;box-shadow:0 0 30px rgba(255,215,0,0.4);transition:0.3s;}
     .big-btn:hover{transform:scale(1.1);}
-    
-    #ver { position: absolute; bottom: 5px; left: 5px; font-size: 10px; color: #555; pointer-events: none; }
-    #loader { color: gold; margin-top:10px; }
   </style>
 </head>
 <body>
-  <div id="ver">v.FINAL (MERGED)</div>
   <div id="timerBar"></div>
   
   <div id="ui">
@@ -59,18 +56,51 @@
 
   <div id="screen">
     <h1 id="title">БАШНЯ</h1>
-    <p id="desc" style="color:#aaa;max-width:300px;line-height:1.5;">Построй башню за 9 ходов.</p>
-    <button id="startBtn" class="big-btn" onclick="startGame()" disabled>ЗАГРУЗКА...</button>
-    <div id="loader"></div>
+    <p id="desc" style="color:#aaa;max-width:300px;line-height:1.5;">Построй башню.<br>Ошибка = блок взрывается.</p>
+    <button class="big-btn" onclick="startGame()">ИГРАТЬ</button>
   </div>
 
 <script>
-// === ГЛАВНАЯ ССЫЛКА ДЛЯ GENIALLY ===
-const REPO = "https://svetlana18011991.github.io/redactor_bashnya/";
-const IMGS = ["3.png","4.png","5.png","6.png","7.png","8.png","9.png","10.png","11.png"];
+// === КОНФИГУРАЦИЯ ===
 
+function b64urlDecodeToObj(b64url){
+  try{
+    const b64 = b64url.replace(/-/g,'+').replace(/_/g,'/');
+    const pad = b64.length % 4 ? '='.repeat(4 - (b64.length % 4)) : '';
+    const bin = atob(b64 + pad);
+    // decode UTF-8
+    const utf8 = Array.from(bin, c => '%' + c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
+    const json = decodeURIComponent(utf8);
+    return JSON.parse(json);
+  }catch(e){
+    return null;
+  }
+}
+
+function readCfgFromUrl(){
+  // поддержка #cfg=... или ?cfg=...
+  const h = location.hash || '';
+  const m1 = h.match(/(?:^|[?#&])cfg=([^&]+)/);
+  if(m1 && m1[1]) return b64urlDecodeToObj(decodeURIComponent(m1[1]));
+  const sp = new URLSearchParams(location.search);
+  const q = sp.get('cfg');
+  if(q) return b64urlDecodeToObj(q);
+  return null;
+}
+
+const REPO = ((URL_CFG && URL_CFG.repoBase) || (window.GAME_CFG && window.GAME_CFG.repoBase))
+  ? window.GAME_CFG.repoBase
+  : (new URL("./", location.href)).href;
+
+// Список URL картинок блоков.
+// В Genially (srcdoc/data:) важно передавать абсолютные ссылки из редактора.
+// Если не передано — используем стандарт 3..11.png.
+const DEFAULT_BLOCK_URLS = ["3.png","4.png","5.png","6.png","7.png","8.png","9.png","10.png","11.png"].map(f=>REPO+f);
 let DATA = { qs: [{type:'choice',q:'2+2?',options:['3','4'],answer:'4'}], bg: null, music: null, shuffle: false };
-if(window.GAME_CFG) DATA = window.GAME_CFG;
+
+const URL_CFG = readCfgFromUrl();
+if(URL_CFG) DATA = URL_CFG;
+else if(window.GAME_CFG) DATA = window.GAME_CFG;
 
 const c = document.getElementById('c');
 const ctx = c.getContext('2d');
@@ -79,44 +109,74 @@ let timerInt = null;
 const audio = new Audio();
 const assets = { b: [], bg: null };
 
-// === ЗАГРУЗЧИК (Чтобы не было серых блоков) ===
-const load = (src) => new Promise(resolve => {
-    if(!src) { resolve(null); return; }
-    // Если это base64 или полная ссылка - берем как есть. Иначе клеим REPO
-    const fullSrc = (src.startsWith('data:') || src.startsWith('http')) ? src : REPO + src;
+// === ДВИЖОК ===
+let lastW = null, lastH = null;
+function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    const newW = Math.max(1, window.innerWidth);
+    const newH = Math.max(1, window.innerHeight);
+
+    // CSS size is handled by CSS (100vw/100vh). Here we set the drawing buffer.
+    c.width  = Math.round(newW * dpr);
+    c.height = Math.round(newH * dpr);
+    c.style.width = newW + "px";
+    c.style.height = newH + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // Store logical (CSS) size used by the game
+    W = newW; H = newH;
+
+    // If the viewport height changes (e.g., on mobile keyboard / Genially resize),
+    // keep the base of the tower glued to the ground instead of "sinking" off screen.
+    if (lastH !== null && game && (game.tower?.length || game.curr)) {
+        const groundY = H - 50;
+        let deltaY = 0;
+
+        if (game.tower && game.tower.length) {
+            const base = game.tower[0]; // first placed block sits on the ground
+            const desiredBaseY = groundY - base.h;
+            deltaY = desiredBaseY - base.y;
+
+            if (deltaY) {
+                game.tower.forEach(b => { b.y += deltaY; });
+                if (game.curr && game.curr.state !== 'drop') game.curr.y += deltaY;
+            }
+        } else if (game.curr && game.curr.state !== 'drop') {
+            // no tower yet, but a block may be waiting/falling — keep it aligned with the new ground
+            const desiredY = groundY - game.curr.h;
+            deltaY = desiredY - game.curr.y;
+            game.curr.y += deltaY;
+        }
+    }
+
+    // Recenter horizontally after width changes
+    if (lastW !== null && game) {
+        const cx = W / 2;
+        if (game.tower && game.tower.length) {
+            game.tower.forEach(b => { b.x = cx - b.w / 2; });
+        }
+        if (game.curr) {
+            game.curr.x = cx - game.curr.w / 2;
+        }
+    }
+
+    lastW = W; lastH = H;
+}
+window.addEventListener('resize', resize, { passive: true });
+resize();
+
+const load = (src) => new Promise(r => {
+    if(!src) { r(null); return; }
     const img = new Image();
     img.crossOrigin = "Anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = () => { console.error("ERR:", fullSrc); resolve(null); };
-    img.src = fullSrc;
+    img.onload = () => r(img);
+    img.onerror = () => r(null);
+    img.src = src.startsWith('data:') ? src : (src.startsWith('http') ? src : REPO+src);
 });
 
 async function init() {
-    const loader = document.getElementById('loader');
-    
-    // 1. Фон
-    loader.innerText = "Грузим фон...";
-    const bgLoaded = await load(DATA.bg || "1.png");
-    if(bgLoaded) assets.bg = bgLoaded;
-    
-    // 2. Блоки
-    for(let i=0; i<IMGS.length; i++) {
-        loader.innerText = `Грузим блоки: ${i+1}/${IMGS.length}`;
-        const img = await load(IMGS[i]);
-        if(img) assets.b.push(img);
-        else {
-            // Если ошибка, создаем цветной квадрат (чтобы игра не висла)
-            const cvs = document.createElement('canvas'); cvs.width=100; cvs.height=50;
-            const t = cvs.getContext('2d'); t.fillStyle='red'; t.fillRect(0,0,100,50);
-            const fallback = new Image(); fallback.src = cvs.toDataURL();
-            assets.b.push(fallback);
-        }
-    }
-    
-    loader.innerText = "";
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('startBtn').innerText = "ИГРАТЬ";
-    
+    assets.bg = await load(DATA.bg || "1.png");
+    for(let u of BLOCK_URLS) { const img = await load(u); if(img) assets.b.push(img); }
     if(DATA.shuffle && DATA.qs.length) {
         for(let i=DATA.qs.length-1; i>0; i--) {
             const j=Math.floor(Math.random()*(i+1));
@@ -126,42 +186,41 @@ async function init() {
     loop();
 }
 
-function resize() { W=c.width=window.innerWidth; H=c.height=window.innerHeight; }
-window.onresize = resize; resize();
-
-let game = { tower: [], curr: null, score: 0, attempt: 0, particles: [], camY: 0 };
+let game = { tower: [], curr: null, score: 0, attempt: 0, particles: [] };
 
 function startGame() {
     document.getElementById('screen').style.display = 'none';
     if(DATA.music) { audio.src = DATA.music; audio.volume = 0.3; audio.loop = true; audio.play().catch(()=>{}); }
-    game.tower = []; game.score = 0; game.attempt = 0; game.camY = 0;
+    game.tower = []; game.score = 0; game.attempt = 0;
     updUI(); spawn();
 }
 
 function spawn() {
     if(game.attempt >= 9) { endGame(); return; }
     
-    // Берем картинку
-    const img = assets.b[game.attempt % assets.b.length];
+    const imgIdx = game.attempt % (assets.b.length || 1);
+    const img = assets.b.length ? assets.b[imgIdx] : null;
     
-    // === ПРОПОРЦИИ (ИСПРАВЛЕНО) ===
-    let w = 220; // Стандартная ширина
-    if(W < 600) w = 150; // Для мобилок
-    
-    let h = 80; // Если картинки нет
-    if(img) {
-        // Сохраняем пропорции картинки!
-        h = w * (img.height / img.width);
+    // АВТО-МАСШТАБ: Чтобы 9 блоков точно влезли в экран без движения камеры
+    // Высота рабочей области (H - 100 пол - 100 отступ сверху) / 9 блоков
+    const maxH = (H - 250) / 9; 
+    let scale = 0.6;
+    if(img && img.height * scale > maxH) {
+        scale = maxH / img.height;
     }
 
     game.curr = {
-        img: img,
-        w: w, h: h,
-        // Спавним ВЫШЕ экрана, учитывая камеру
-        x: W/2 - w/2, 
-        y: -300 - game.camY, 
+        img: img, 
+        w: 120, h: 60, 
+        x: W/2 - 60, y: -200, 
         state: 'drop'
     };
+    
+    if(img) {
+        game.curr.w = img.width * scale;
+        game.curr.h = img.height * scale;
+        game.curr.x = W/2 - game.curr.w/2;
+    }
 }
 
 function endGame() {
@@ -173,55 +232,27 @@ function endGame() {
 }
 
 function update() {
-    // === КАМЕРА (СТАБИЛЬНАЯ) ===
-    // Камера двигается только если башня ВЫШЕ 40% экрана
-    let targetCam = 0;
-    if(game.tower.length > 3) {
-        let towerTop = game.tower[game.tower.length-1].y;
-        // Если верхушка башни выше середины экрана (в координатах мира Y уменьшается вверх)
-        // Мир: Пол = H-50. Башня растет к 0 и в минус.
-        // Нам нужно, чтобы верх башни был на уровне H/2.
-        
-        // Текущий верх башни относительно экрана = towerTop + camY
-        // Мы хотим, чтобы towerTop + camY = H/3
-        // Значит camY = H/3 - towerTop
-        
-        let desiredScreenY = H / 2.5;
-        let diff = desiredScreenY - (towerTop + game.camY);
-        
-        if(diff > 0) { // Если башня слишком низко, не опускаем камеру (пол держим)
-             // Ничего
-        } else {
-             // Если башня лезет вверх, поднимаем камеру
-             targetCam = -towerTop + desiredScreenY;
-        }
-    }
-    
-    // Но мы не хотим, чтобы пол уезжал вверх, если башня маленькая.
-    // targetCam должен быть >= 0.
-    if(targetCam < 0) targetCam = 0;
-    
-    // Плавность
-    game.camY = game.camY * 0.9 + targetCam * 0.1;
-
-
-    // === БЛОК ===
+    // 1. БЛОК
     if(game.curr) {
         const b = game.curr;
+        // ПОЛ ЗАФИКСИРОВАН (H - 50)
         const groundY = H - 50; 
         
         let landY = groundY - b.h; 
         if(game.tower.length > 0) {
-            landY = game.tower[game.tower.length-1].y - b.h + 2; // Маленький нахлест
+            // Сажаем на последний блок + нахлест
+            landY = game.tower[game.tower.length-1].y - b.h + 5; 
         }
 
         if(b.state === 'drop') {
-            // Точка вопроса
-            let hoverY = landY - 150; 
-            // Не даем улететь в космос выше экрана
-            if(hoverY < -game.camY + 50) hoverY = -game.camY + 50;
+            // Спуск до вопроса (позиция фиксирована над будущим местом посадки)
+            let hoverY = H - 300; 
+            if(game.tower.length > 0) hoverY = game.tower[game.tower.length-1].y - 120;
+            
+            // Ограничиваем, чтобы не улетал в космос
+            if(hoverY < 50) hoverY = 50;
 
-            b.y += 15;
+            b.y += 12;
             if(b.y >= hoverY) {
                 b.y = hoverY;
                 b.state = 'wait';
@@ -232,6 +263,7 @@ function update() {
             b.y += 25;
             if(b.y >= landY) {
                 b.y = landY;
+                // Блок сел. Он больше НИКОГДА не сдвинется.
                 game.tower.push(b);
                 game.score += 100;
                 game.curr = null;
@@ -242,7 +274,7 @@ function update() {
         }
     }
 
-    // === ЧАСТИЦЫ (ВЗРЫВ) ===
+    // 2. ЧАСТИЦЫ
     for(let i=game.particles.length-1; i>=0; i--) {
         let p = game.particles[i];
         p.x+=p.vx; p.y+=p.vy; p.life-=0.02;
@@ -255,42 +287,76 @@ function updUI() {
     document.getElementById('hScore').innerText = game.score;
 }
 
+
+function drawStoneBlock(x,y,w,h){
+  // Рисуем "каменный" блок вместо жёлтого прямоугольника (если картинки недоступны)
+  const r = Math.min(16, Math.max(6, Math.floor(Math.min(w,h)*0.18)));
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+
+  const g = ctx.createLinearGradient(x, y, x, y+h);
+  g.addColorStop(0, "rgba(210,210,220,0.95)");
+  g.addColorStop(0.55, "rgba(140,145,155,0.95)");
+  g.addColorStop(1, "rgba(85,90,100,0.98)");
+  ctx.fillStyle = g;
+  ctx.fill();
+
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(0,0,0,0.25)";
+  ctx.stroke();
+
+  // небольшие "швы"
+  ctx.globalAlpha = 0.18;
+  ctx.strokeStyle = "rgba(255,255,255,0.9)";
+  ctx.lineWidth = 1;
+  for(let i=1;i<=3;i++){
+    const yy = y + (h/4)*i;
+    ctx.beginPath();
+    ctx.moveTo(x+10, yy);
+    ctx.lineTo(x+w-10, yy);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function draw() {
     ctx.clearRect(0,0,W,H);
     
-    // Фон (статичный)
+    // Фон
     if(assets.bg) {
         const sc = Math.max(W/assets.bg.width, H/assets.bg.height);
         ctx.drawImage(assets.bg, (W-assets.bg.width*sc)/2, (H-assets.bg.height*sc)/2, assets.bg.width*sc, assets.bg.height*sc);
     } else { ctx.fillStyle="#112"; ctx.fillRect(0,0,W,H); }
 
-    ctx.save();
-    // Применяем камеру
-    ctx.translate(0, Math.round(game.camY));
-
-    // Пол
+    // Пол (СТАТИЧНЫЙ)
     ctx.fillStyle="#222"; 
-    ctx.fillRect(0, H-50, W, 200);
+    ctx.fillRect(0, H-50, W, 50);
 
-    // Башня
+    // Башня (СТАТИЧНАЯ)
     game.tower.forEach(b => {
         if(b.img) ctx.drawImage(b.img, b.x, b.y, b.w, b.h);
+        else { drawStoneBlock(b.x,b.y,b.w,b.h); }
     });
 
-    // Текущий
+    // Текущий блок
     if(game.curr) {
         const b = game.curr;
         if(b.img) ctx.drawImage(b.img, b.x, b.y, b.w, b.h);
+        else { drawStoneBlock(b.x,b.y,b.w,b.h); }
     }
 
-    // Взрыв (Старый стиль)
+    // Частицы
     game.particles.forEach(p => {
         ctx.fillStyle=p.color; ctx.globalAlpha=p.life;
         ctx.fillRect(p.x, p.y, p.size, p.size);
     });
     ctx.globalAlpha=1;
-
-    ctx.restore();
 }
 
 function loop() {
@@ -299,6 +365,7 @@ function loop() {
     draw();
 }
 
+// === ВЗАИМОДЕЙСТВИЕ ===
 function ask() {
     if(!DATA.qs || !DATA.qs.length) return; 
     const q = DATA.qs[game.attempt % DATA.qs.length];
@@ -309,12 +376,8 @@ function ask() {
     document.getElementById('msg').innerText = "";
     
     const img = document.getElementById('qImg');
-    if(q.img) {
-        img.style.display = 'block';
-        img.src = q.img.startsWith('data:') ? q.img : REPO + q.img;
-    } else {
-        img.style.display = 'none';
-    }
+    img.style.display = q.img ? 'block' : 'none';
+    if(q.img) img.src = q.img;
 
     const box = document.getElementById('ansBox');
     const inp = document.getElementById('inp');
@@ -370,21 +433,20 @@ function answer(win) {
             if(game.curr) game.curr.state = 'fall';
         }, 1000);
     } else {
-        msg.innerText = "ОШИБКА! БАБАХ!"; msg.style.color = "#f00";
+        msg.innerText = "ОШИБКА! Блок сгорает..."; msg.style.color = "#f00";
         setTimeout(() => {
             document.getElementById('overlay').style.display='none';
-            boom(); // Мгновенный взрыв
-        }, 1000);
+            boom(); // МГНОВЕННЫЙ ВЗРЫВ
+        }, 1500);
     }
 }
 
 function boom() {
     const b = game.curr;
-    // Создаем частицы на месте блока
-    for(let i=0; i<50; i++) {
+    // Создаем много частиц
+    for(let i=0; i<40; i++) {
         game.particles.push({
-            x: b.x + Math.random()*b.w, 
-            y: b.y + Math.random()*b.h,
+            x: b.x + b.w/2, y: b.y + b.h/2,
             vx: (Math.random()-0.5)*20, 
             vy: (Math.random()-0.5)*20,
             life: 1, 
@@ -392,7 +454,8 @@ function boom() {
             size: Math.random()*6 + 2
         });
     }
-    // Блок исчезает
+    
+    // Блок удаляем сразу
     game.curr = null;
     game.attempt++;
     updUI();
